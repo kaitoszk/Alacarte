@@ -54,7 +54,7 @@ const toggleFollow = () => {
         return;
     }
 
-    const params = { user: author.id };
+    const params = { user: author.handle };
     const options = { preserveScroll: true };
 
     if (props.isFollowingAuthor) {
@@ -87,7 +87,12 @@ const destroy = () => {
                 <div class="flex flex-col gap-2">
                     <h1 class="text-2xl font-semibold">{{ recipe.title }}</h1>
                     <div v-if="recipe.user" class="flex flex-wrap items-center gap-2">
-                        <p class="text-sm text-muted-foreground">by {{ recipe.user.name }} (@{{ recipe.user.handle }})</p>
+                        <Link
+                            :href="route('users.show', { user: recipe.user.handle })"
+                            class="text-sm text-muted-foreground hover:underline"
+                        >
+                            by {{ recipe.user.name }} (@{{ recipe.user.handle }})
+                        </Link>
                         <Button
                             v-if="canFollowAuthor"
                             :variant="isFollowingAuthor ? 'secondary' : 'outline'"

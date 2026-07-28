@@ -7,6 +7,13 @@ export interface UserSummary {
     user_image_url: string | null;
 }
 
+/** プロフィール画面で使う、件数付きのユーザー情報 */
+export interface UserProfile extends UserSummary {
+    recipes_count: number;
+    followers_count: number;
+    followings_count: number;
+}
+
 export interface Ingredient {
     id: number;
     order_number: number;

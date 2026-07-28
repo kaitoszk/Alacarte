@@ -32,7 +32,8 @@ const login = async (page: Page) => {
     await page.getByLabel('Email address').fill('test@example.com');
     await page.getByLabel('Password', { exact: true }).fill('password');
     await page.getByRole('button', { name: 'Log in' }).click();
-    await page.waitForURL('**/dashboard');
+    // /dashboard は自分のプロフィール（マイページ）へリダイレクトする
+    await page.waitForURL('**/users/**');
 };
 
 test('ゲストでもTopのみんなのレシピが描画される', async ({ page }) => {
@@ -142,6 +143,40 @@ test('投稿者をフォロー・解除できる', async ({ page }) => {
 
     await toggle.click();
     await expect(toggle).not.toContainText('フォロー中');
+
+    expect(errors).toEqual([]);
+});
+
+test('レシピ詳細から投稿者のプロフィールへ遷移できる', async ({ page }) => {
+    const errors = collectPageErrors(page);
+
+    await page.goto('/recipes');
+    await recipeCards(page).first().click();
+
+    const author = page.getByRole('link', { name: /^by / });
+    await expect(author).toBeVisible();
+    const handle = (await author.innerText()).match(/@([\w.-]+)/)?.[1];
+
+    await author.click();
+    await page.waitForURL(`**/users/${handle}`);
+
+    // 投稿者のレシピが並び、件数サマリーが出ていること
+    await expect(page.getByText(`@${handle}`)).toBeVisible();
+    await expect(page.getByText('フォロワー')).toBeVisible();
+    await expect(recipeCards(page).first().locator('img')).toBeVisible();
+
+    expect(errors).toEqual([]);
+});
+
+test('ログインするとマイページに自分の情報が出る', async ({ page }) => {
+    const errors = collectPageErrors(page);
+
+    await login(page);
+
+    await expect(page.getByRole('heading', { name: 'Test User' })).toBeVisible();
+    await expect(page.getByText('フォロー中')).toBeVisible();
+    // 自分のプロフィールにフォローボタンは出ない
+    await expect(page.getByRole('button', { name: /^フォロー/ })).toHaveCount(0);
 
     expect(errors).toEqual([]);
 });

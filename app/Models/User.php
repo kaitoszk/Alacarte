@@ -52,6 +52,14 @@ class User extends Authenticatable
         ];
     }
 
+    /**
+     * URL には id ではなく handle を使う（/users/{handle}）。
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'handle';
+    }
+
     public function recipes(): HasMany
     {
         return $this->hasMany(Recipe::class);
