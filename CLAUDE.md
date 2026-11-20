@@ -28,6 +28,8 @@ PHP側は必ずコンテナ経由で実行する。Node/Viteはホスト側で�
 - DB作り直し: `docker compose exec app php artisan migrate:fresh --seed`（破壊的。実行前に必ず確認を取ること）
 - フロント開発: `npm run dev`（ホスト側）
 - フロントビルド: `npm run build`（ホスト側）
+- 型チェック: `npm run type-check`（ホスト側）
+- フロント整形: `npm run format`（ホスト側）
 
 アクセス先: アプリ http://localhost:8080 / phpMyAdmin http://localhost:8081
 
@@ -60,11 +62,27 @@ PHP側は必ずコンテナ経由で実行する。Node/Viteはホスト側で�
 - 新しいルート・Actionを追加したら、必ず対応するテストも追加する
 - テストが緑になるまでタスク完了としない
 
-## Workflow
-- 大きめの変更は必ず Plan Mode で計画を出し、合意してから実装する
-- 1タスク=1コミット。ステップごとにこまめにコミットする（巻き戻しやすさのため）
-- コミットメッセージは日本語可。prefix は feat / fix / refactor / test / chore
-- UIは一発で仕上げようとせず、実装 → 確認 → 修正の反復を前提にする
+## Workflow（issue 駆動）
+作業は GitHub issue 単位で進める。issue 作成〜PR 作成は Claude、レビューとマージは人間が担当する。
+
+1. 起票: 合意した内容を `gh issue create` で issue にする
+   - 本文は「目的 / やること / 受け入れ条件」の3見出し
+   - 大きい場合は縦切り（画面〜DBまで通る単位）で複数の issue に分ける
+2. 着手: `gh issue view <番号>` で内容を読み、main を最新にしてからブランチを切る
+   - `git switch main` → `git pull` → `git switch -c <prefix>/<番号>-<短い英語の説明>`（例: feat/12-recipe-form）
+3. 計画: 大きめの変更は Plan Mode で計画を出し、合意してから実装する
+4. 実装: 1タスク=1コミット。ステップごとにこまめにコミットする（巻き戻しやすさのため）
+   - コミットメッセージは日本語可。prefix は feat / fix / refactor / test / chore
+   - UIは一発で仕上げようとせず、実装 → 確認 → 修正の反復を前提にする
+5. 完了確認: 以下がすべて通るまで完了としない
+   - `docker compose exec app php artisan test`
+   - `npm run type-check`
+   - `npm run build`
+   - 整形: `docker compose exec app ./vendor/bin/pint` / `npm run format`
+6. PR: `git push -u origin <ブランチ名>` → `gh pr create`
+   - 本文は「概要 / 変更点 / 確認結果（5 のコマンドと結果）」、最終行に `Closes #<番号>`
+   - PR を作成したら URL を報告して止まる
+7. レビュー対応: 指摘を受けたら `gh pr view <番号> --comments` で読み、同じブランチに追加コミットして push する
 
 ## Do NOT
 - vendor/ · node_modules/ を編集しない
@@ -75,6 +93,7 @@ PHP側は必ずコンテナ経由で実行する。Node/Viteはホスト側で�
 - 外部パッケージを勝手に追加しない。必要なら理由を添えて提案してから
 - 指示と無関係なコードには触らない。一度に広範囲を書き換えない
 - 過剰な抽象化をしない。今必要な分だけ作る（YAGNI）
+- main に直接コミット・push しない。PR のマージ（`gh pr merge`）はしない（人間が行う）
 
 ## Review Policy
 コードレビューを依頼された時は、正しさ・要件・セキュリティに影響する問題だけを報告すること。
