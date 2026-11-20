@@ -39,9 +39,7 @@ const toggleFollow = () => {
     router.post(route('follows.store', params), {}, options);
 };
 
-const breadcrumbs = computed<BreadcrumbItem[]>(() => [
-    { title: user.value.name, href: route('users.show', { user: user.value.handle }) },
-]);
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [{ title: user.value.name, href: route('users.show', { user: user.value.handle }) }]);
 </script>
 
 <template>
@@ -62,9 +60,15 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [
                         <h1 class="text-2xl font-semibold">{{ user.name }}</h1>
                         <p class="text-sm text-muted-foreground">@{{ user.handle }}</p>
                         <div class="flex flex-wrap gap-4 pt-1 text-sm text-muted-foreground">
-                            <span>レシピ <span class="font-medium text-foreground">{{ user.recipes_count }}</span></span>
-                            <span>フォロー中 <span class="font-medium text-foreground">{{ user.followings_count }}</span></span>
-                            <span>フォロワー <span class="font-medium text-foreground">{{ user.followers_count }}</span></span>
+                            <span
+                                >レシピ <span class="font-medium text-foreground">{{ user.recipes_count }}</span></span
+                            >
+                            <span
+                                >フォロー中 <span class="font-medium text-foreground">{{ user.followings_count }}</span></span
+                            >
+                            <span
+                                >フォロワー <span class="font-medium text-foreground">{{ user.followers_count }}</span></span
+                            >
                         </div>
                     </div>
                 </div>

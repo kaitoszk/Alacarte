@@ -87,10 +87,7 @@ const destroy = () => {
                 <div class="flex flex-col gap-2">
                     <h1 class="text-2xl font-semibold">{{ recipe.title }}</h1>
                     <div v-if="recipe.user" class="flex flex-wrap items-center gap-2">
-                        <Link
-                            :href="route('users.show', { user: recipe.user.handle })"
-                            class="text-sm text-muted-foreground hover:underline"
-                        >
+                        <Link :href="route('users.show', { user: recipe.user.handle })" class="text-sm text-muted-foreground hover:underline">
                             by {{ recipe.user.name }} (@{{ recipe.user.handle }})
                         </Link>
                         <Button
