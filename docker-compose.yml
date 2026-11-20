@@ -3,7 +3,7 @@ services:
     build: ./docker/php
     container_name: alacarte-app
     ports:
-      - "8080:80"
+      - "127.0.0.1:8080:80"
     volumes:
       - .:/var/www/html
       - ./docker/apache/000-default.conf:/etc/apache2/sites-available/000-default.conf
@@ -19,7 +19,7 @@ services:
       MYSQL_PASSWORD: secret
       MYSQL_ROOT_PASSWORD: secret
     ports:
-      - "3306:3306"
+      - "127.0.0.1:3306:3306"
     volumes:
       - db-data:/var/lib/mysql
 
@@ -31,7 +31,7 @@ services:
       PMA_USER: alacarte
       PMA_PASSWORD: secret
     ports:
-      - "8081:80"
+      - "127.0.0.1:8081:80"
     depends_on:
       - db
 
