@@ -16,7 +16,7 @@ import { type BreadcrumbItem, type SharedData } from '@/types';
 import type { Recipe, RecipeComment } from '@/types/recipe';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { Clock, Eye, Heart, ShoppingCart, UserCheck, UserPlus, Users } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 const props = defineProps<{
     recipe: { data: Recipe };
@@ -46,8 +46,17 @@ const toggleFavorite = () => {
 };
 
 /** 材料をまとめて買い物リストに追加する。追加済みならボタンは無効 */
+const isAddingToCart = ref(false);
 const addToCart = () => {
-    router.post(route('carts.store', { recipe: recipe.value.id }), {}, { preserveScroll: true });
+    router.post(
+        route('carts.store', { recipe: recipe.value.id }),
+        {},
+        {
+            preserveScroll: true,
+            onStart: () => (isAddingToCart.value = true),
+            onFinish: () => (isAddingToCart.value = false),
+        },
+    );
 };
 
 /** 投稿者のフォローをトグルする。自分のレシピとゲストには出さない */
@@ -156,7 +165,7 @@ const destroy = () => {
                     <Button v-if="!isLoggedIn" variant="outline" size="sm" class="gap-1.5" as-child>
                         <Link :href="route('login')"><ShoppingCart class="h-4 w-4" />買い物リストに追加</Link>
                     </Button>
-                    <Button v-else variant="outline" size="sm" class="gap-1.5" :disabled="isInCart" @click="addToCart">
+                    <Button v-else variant="outline" size="sm" class="gap-1.5" :disabled="isInCart || isAddingToCart" @click="addToCart">
                         <ShoppingCart class="h-4 w-4" />
                         {{ isInCart ? '買い物リストに追加済み' : '買い物リストに追加' }}
                     </Button>

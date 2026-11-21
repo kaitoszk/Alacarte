@@ -15,6 +15,9 @@ class AddRecipeToCartAction
     public function handle(User $user, Recipe $recipe): void
     {
         DB::transaction(function () use ($user, $recipe) {
+            // ボタン連打で同時に届いた追加が両方 exists=false を見ないよう、ユーザー行をロックして直列化する
+            User::whereKey($user->id)->lockForUpdate()->first();
+
             if ($user->carts()->where('recipe_id', $recipe->id)->exists()) {
                 return;
             }
