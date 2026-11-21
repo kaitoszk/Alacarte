@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import ConfirmModal from '@/components/ConfirmModal.vue';
+import EmptyState from '@/components/EmptyState.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import type { CartGroup, CartItem } from '@/types/cart';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Trash2 } from 'lucide-vue-next';
+import { ShoppingCart, Trash2 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{
@@ -41,7 +42,7 @@ const destroyChecked = () => {
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex flex-1 flex-col gap-6 p-4">
             <div class="flex max-w-2xl flex-wrap items-center justify-between gap-2">
-                <h1 class="text-2xl font-semibold">買い物リスト</h1>
+                <h1 class="text-2xl font-bold">買い物リスト</h1>
 
                 <ConfirmModal
                     v-if="hasChecked"
@@ -56,18 +57,22 @@ const destroyChecked = () => {
                 </ConfirmModal>
             </div>
 
-            <div v-if="groups.length === 0" class="flex flex-col items-center gap-3 py-16 text-center">
-                <p class="text-muted-foreground">買い物リストは空です。</p>
-                <Button as-child variant="secondary">
+            <EmptyState
+                v-if="groups.length === 0"
+                :icon="ShoppingCart"
+                title="買い物リストは空です"
+                description="レシピ詳細の「買い物リストに追加」で、材料がまとめて入ります。"
+            >
+                <Button as-child>
                     <Link :href="route('recipes.index')">レシピを探す</Link>
                 </Button>
-            </div>
+            </EmptyState>
 
             <div v-else class="flex max-w-2xl flex-col gap-6">
-                <section v-for="group in groups" :key="group.recipe.id" class="rounded-lg border p-4">
+                <section v-for="group in groups" :key="group.recipe.id" class="rounded-xl border bg-card p-5">
                     <h2 class="mb-3 text-lg font-medium">
                         <span v-if="group.recipe.is_deleted">{{ group.recipe.title }}（削除されたレシピ）</span>
-                        <Link v-else :href="route('recipes.show', { recipe: group.recipe.id })" class="hover:underline">
+                        <Link v-else :href="route('recipes.show', { recipe: group.recipe.id })" class="hover:text-primary-strong hover:underline">
                             {{ group.recipe.title }}
                         </Link>
                     </h2>
@@ -78,7 +83,7 @@ const destroyChecked = () => {
                                 type="button"
                                 class="flex flex-1 items-center gap-3 rounded-md px-1 py-1.5 text-left text-sm hover:bg-accent"
                                 :class="item.is_checked ? 'text-muted-foreground line-through' : ''"
-                                :aria-pressed="item.is_checked"
+                                :aria-pressed="item.is_checked ? 'true' : 'false'"
                                 @click="toggle(item)"
                             >
                                 <Checkbox :checked="item.is_checked" class="pointer-events-none" tabindex="-1" aria-hidden="true" />
