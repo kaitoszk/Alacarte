@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\Recipe\CreateRecipeAction;
 use App\Actions\Recipe\UpdateRecipeAction;
+use App\Http\Requests\IndexRecipeRequest;
 use App\Http\Requests\StoreRecipeRequest;
 use App\Http\Requests\UpdateRecipeRequest;
 use App\Http\Resources\RecipeCommentResource;
@@ -19,19 +20,24 @@ class RecipeController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request): Response
+    public function index(IndexRecipeRequest $request): Response
     {
         $this->authorize('viewAny', Recipe::class);
 
+        $keyword = $request->validated('q');
+
         $recipes = Recipe::query()
+            ->search($keyword)
             ->with('user')
             ->withCount(['favorites', 'comments'])
             ->withFavoritedBy($request->user())
             ->latest()
-            ->paginate(20);
+            ->paginate(20)
+            ->withQueryString();
 
         return Inertia::render('recipes/Index', [
             'recipes' => RecipeResource::collection($recipes),
+            'filters' => ['q' => $keyword],
         ]);
     }
 

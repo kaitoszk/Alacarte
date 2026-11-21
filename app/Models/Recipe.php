@@ -61,4 +61,26 @@ class Recipe extends Model
             'favorites as is_favorited' => fn ($favorites) => $favorites->where('user_id', $user?->id),
         ]);
     }
+
+    /**
+     * キーワード検索。空白（全角・半角）で区切った語をすべて含むレシピに絞る（AND）。
+     * 1語ごとに「タイトル または 材料名」の部分一致で探す。LIKE のワイルドカードはエスケープする。
+     *
+     * @param  Builder<Recipe>  $query
+     * @return Builder<Recipe>
+     */
+    public function scopeSearch(Builder $query, ?string $keyword): Builder
+    {
+        $words = preg_split('/[\s　]+/u', trim((string) $keyword), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        foreach ($words as $word) {
+            $pattern = '%'.addcslashes($word, '\\%_').'%';
+
+            $query->where(fn (Builder $recipe) => $recipe
+                ->where('title', 'like', $pattern)
+                ->orWhereHas('ingredients', fn (Builder $ingredient) => $ingredient->where('name', 'like', $pattern)));
+        }
+
+        return $query;
+    }
 }
