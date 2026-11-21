@@ -1,16 +1,7 @@
 <script setup lang="ts">
+import ConfirmModal from '@/components/ConfirmModal.vue';
 import CommentSection from '@/components/recipes/CommentSection.vue';
 import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogClose,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import type { Recipe, RecipeComment } from '@/types/recipe';
@@ -124,23 +115,11 @@ const destroy = () => {
                         <Link :href="route('recipes.edit', { recipe: recipe.id })">編集</Link>
                     </Button>
 
-                    <Dialog>
-                        <DialogTrigger as-child>
+                    <ConfirmModal title="このレシピを削除しますか？" description="削除すると一覧から表示されなくなります。" @confirm="destroy">
+                        <template #trigger>
                             <Button variant="destructive">削除</Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader class="space-y-3">
-                                <DialogTitle>このレシピを削除しますか？</DialogTitle>
-                                <DialogDescription>削除すると一覧から表示されなくなります。</DialogDescription>
-                            </DialogHeader>
-                            <DialogFooter>
-                                <DialogClose as-child>
-                                    <Button variant="secondary">キャンセル</Button>
-                                </DialogClose>
-                                <Button variant="destructive" @click="destroy">削除する</Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
+                        </template>
+                    </ConfirmModal>
                 </div>
             </div>
 

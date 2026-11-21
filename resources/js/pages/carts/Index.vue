@@ -1,16 +1,7 @@
 <script setup lang="ts">
+import ConfirmModal from '@/components/ConfirmModal.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-    Dialog,
-    DialogClose,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import type { CartGroup, CartItem } from '@/types/cart';
@@ -52,23 +43,17 @@ const destroyChecked = () => {
             <div class="flex max-w-2xl flex-wrap items-center justify-between gap-2">
                 <h1 class="text-2xl font-semibold">買い物リスト</h1>
 
-                <Dialog v-if="hasChecked" v-model:open="isConfirmOpen">
-                    <DialogTrigger as-child>
+                <ConfirmModal
+                    v-if="hasChecked"
+                    v-model:open="isConfirmOpen"
+                    title="チェック済みの材料を削除しますか？"
+                    description="チェックを付けた材料が買い物リストから消えます。"
+                    @confirm="destroyChecked"
+                >
+                    <template #trigger>
                         <Button variant="outline" size="sm">チェック済みを削除</Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader class="space-y-3">
-                            <DialogTitle>チェック済みの材料を削除しますか？</DialogTitle>
-                            <DialogDescription>チェックを付けた材料が買い物リストから消えます。</DialogDescription>
-                        </DialogHeader>
-                        <DialogFooter>
-                            <DialogClose as-child>
-                                <Button variant="secondary">キャンセル</Button>
-                            </DialogClose>
-                            <Button variant="destructive" @click="destroyChecked">削除する</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                    </template>
+                </ConfirmModal>
             </div>
 
             <div v-if="groups.length === 0" class="flex flex-col items-center gap-3 py-16 text-center">
