@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EmptyState from '@/components/EmptyState.vue';
 import Pagination from '@/components/Pagination.vue';
 import RecipeCard from '@/components/recipes/RecipeCard.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -8,7 +9,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import type { Paginated, Recipe, UserProfile } from '@/types/recipe';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { UserCheck, UserPlus } from 'lucide-vue-next';
+import { Plus, UserCheck, UserPlus, UtensilsCrossed } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 const props = defineProps<{
@@ -48,29 +49,17 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [{ title: user.value.name, 
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex flex-1 flex-col gap-6 p-4">
-            <div class="flex flex-wrap items-start justify-between gap-4">
+            <!-- プロフィール -->
+            <section class="flex flex-col gap-5 rounded-2xl border bg-card p-6 sm:flex-row sm:items-center sm:justify-between">
                 <div class="flex items-center gap-4">
-                    <Avatar class="h-16 w-16 overflow-hidden rounded-full">
+                    <Avatar class="size-20 overflow-hidden rounded-full ring-4 ring-primary/15">
                         <AvatarImage v-if="user.user_image_url" :src="user.user_image_url" :alt="user.name" />
-                        <AvatarFallback class="rounded-full text-lg text-black dark:text-white">
-                            {{ getInitials(user.name) }}
-                        </AvatarFallback>
+                        <AvatarFallback class="rounded-full text-xl">{{ getInitials(user.name) }}</AvatarFallback>
                     </Avatar>
 
-                    <div class="flex flex-col gap-1">
-                        <h1 class="text-2xl font-semibold">{{ user.name }}</h1>
+                    <div class="flex min-w-0 flex-col gap-1">
+                        <h1 class="truncate text-2xl font-bold">{{ user.name }}</h1>
                         <p class="text-sm text-muted-foreground">@{{ user.handle }}</p>
-                        <div class="flex flex-wrap gap-4 pt-1 text-sm text-muted-foreground">
-                            <span
-                                >レシピ <span class="font-medium text-foreground">{{ user.recipes_count }}</span></span
-                            >
-                            <span
-                                >フォロー中 <span class="font-medium text-foreground">{{ user.followings_count }}</span></span
-                            >
-                            <span
-                                >フォロワー <span class="font-medium text-foreground">{{ user.followers_count }}</span></span
-                            >
-                        </div>
                     </div>
                 </div>
 
@@ -81,20 +70,39 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [{ title: user.value.name, 
                 </Button>
 
                 <Button v-else-if="isMe" as-child>
-                    <Link :href="route('recipes.create')">レシピを投稿</Link>
+                    <Link :href="route('recipes.create')"><Plus class="h-4 w-4" />レシピを投稿</Link>
                 </Button>
-            </div>
+            </section>
 
-            <div v-if="recipes.data.length === 0" class="flex flex-col items-center gap-3 py-16 text-center">
-                <p class="text-muted-foreground">
-                    {{ isMe ? 'まだレシピを投稿していません。' : 'まだレシピがありません。' }}
-                </p>
-                <Button v-if="isMe" as-child variant="secondary">
+            <dl class="grid grid-cols-3 divide-x rounded-xl border bg-card text-center">
+                <div class="py-3">
+                    <dt class="text-xs text-muted-foreground">レシピ</dt>
+                    <dd class="text-lg font-bold">{{ user.recipes_count }}</dd>
+                </div>
+                <div class="py-3">
+                    <dt class="text-xs text-muted-foreground">フォロー中</dt>
+                    <dd class="text-lg font-bold">{{ user.followings_count }}</dd>
+                </div>
+                <div class="py-3">
+                    <dt class="text-xs text-muted-foreground">フォロワー</dt>
+                    <dd class="text-lg font-bold">{{ user.followers_count }}</dd>
+                </div>
+            </dl>
+
+            <h2 class="text-lg font-semibold">{{ isMe ? '投稿したレシピ' : `${user.name}さんのレシピ` }}</h2>
+
+            <EmptyState
+                v-if="recipes.data.length === 0"
+                :icon="UtensilsCrossed"
+                :title="isMe ? 'まだレシピを投稿していません' : 'まだレシピがありません'"
+                :description="isMe ? '得意料理を投稿して、みんなの「今日何つくる？」に応えましょう。' : undefined"
+            >
+                <Button v-if="isMe" as-child>
                     <Link :href="route('recipes.create')">最初のレシピを投稿する</Link>
                 </Button>
-            </div>
+            </EmptyState>
 
-            <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div v-else class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 <RecipeCard v-for="recipe in recipes.data" :key="recipe.id" :recipe="recipe" />
             </div>
 
