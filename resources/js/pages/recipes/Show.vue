@@ -15,13 +15,14 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import type { Recipe, RecipeComment } from '@/types/recipe';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { Clock, Eye, Heart, UserCheck, UserPlus, Users } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { Clock, Eye, Heart, ShoppingCart, UserCheck, UserPlus, Users } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 
 const props = defineProps<{
     recipe: { data: Recipe };
     comments: { data: RecipeComment[] };
     isFollowingAuthor: boolean;
+    isInCart: boolean;
 }>();
 
 const page = usePage<SharedData>();
@@ -42,6 +43,20 @@ const toggleFavorite = () => {
     }
 
     router.post(route('favorites.store', params), {}, options);
+};
+
+/** 材料をまとめて買い物リストに追加する。追加済みならボタンは無効 */
+const isAddingToCart = ref(false);
+const addToCart = () => {
+    router.post(
+        route('carts.store', { recipe: recipe.value.id }),
+        {},
+        {
+            preserveScroll: true,
+            onStart: () => (isAddingToCart.value = true),
+            onFinish: () => (isAddingToCart.value = false),
+        },
+    );
 };
 
 /** 投稿者のフォローをトグルする。自分のレシピとゲストには出さない */
@@ -145,7 +160,16 @@ const destroy = () => {
             <p v-if="recipe.description" class="whitespace-pre-wrap">{{ recipe.description }}</p>
 
             <section v-if="recipe.ingredients?.length" class="flex flex-col gap-3">
-                <h2 class="text-lg font-medium">材料（{{ recipe.servings }}人分）</h2>
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <h2 class="text-lg font-medium">材料（{{ recipe.servings }}人分）</h2>
+                    <Button v-if="!isLoggedIn" variant="outline" size="sm" class="gap-1.5" as-child>
+                        <Link :href="route('login')"><ShoppingCart class="h-4 w-4" />買い物リストに追加</Link>
+                    </Button>
+                    <Button v-else variant="outline" size="sm" class="gap-1.5" :disabled="isInCart || isAddingToCart" @click="addToCart">
+                        <ShoppingCart class="h-4 w-4" />
+                        {{ isInCart ? '買い物リストに追加済み' : '買い物リストに追加' }}
+                    </Button>
+                </div>
                 <ul class="divide-y rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
                     <li v-for="ingredient in recipe.ingredients" :key="ingredient.id" class="flex justify-between px-4 py-2.5 text-sm">
                         <span>{{ ingredient.name }}</span>

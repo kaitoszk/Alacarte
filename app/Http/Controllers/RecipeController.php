@@ -82,6 +82,7 @@ class RecipeController extends Controller
             'recipe' => new RecipeResource($recipe),
             'comments' => RecipeCommentResource::collection($comments),
             'isFollowingAuthor' => (bool) $request->user()?->followings()->whereKey($recipe->user_id)->exists(),
+            'isInCart' => (bool) $request->user()?->carts()->where('recipe_id', $recipe->id)->exists(),
         ]);
     }
 
