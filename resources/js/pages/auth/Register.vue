@@ -24,31 +24,31 @@ const submit = () => {
 </script>
 
 <template>
-    <AuthBase title="Create an account" description="Enter your details below to create your account">
-        <Head title="Register" />
+    <AuthBase title="新規登録" description="必要な情報を入力して、アカウントを作成してください">
+        <Head title="新規登録" />
 
         <form @submit.prevent="submit" class="flex flex-col gap-6">
             <div class="grid gap-6">
                 <div class="grid gap-2">
-                    <Label for="name">Name</Label>
-                    <Input id="name" type="text" required autofocus tabindex="1" autocomplete="name" v-model="form.name" placeholder="Full name" />
+                    <Label for="name">名前</Label>
+                    <Input id="name" type="text" required autofocus tabindex="1" autocomplete="name" v-model="form.name" placeholder="山田 太郎" />
                     <InputError :message="form.errors.name" />
                 </div>
 
                 <div class="grid gap-2">
-                    <Label for="handle">Handle</Label>
+                    <Label for="handle">ユーザーID（英数字・-・_）</Label>
                     <Input id="handle" type="text" required tabindex="2" autocomplete="username" v-model="form.handle" placeholder="handle_name" />
                     <InputError :message="form.errors.handle" />
                 </div>
 
                 <div class="grid gap-2">
-                    <Label for="email">Email address</Label>
+                    <Label for="email">メールアドレス</Label>
                     <Input id="email" type="email" required tabindex="3" autocomplete="email" v-model="form.email" placeholder="email@example.com" />
                     <InputError :message="form.errors.email" />
                 </div>
 
                 <div class="grid gap-2">
-                    <Label for="password">Password</Label>
+                    <Label for="password">パスワード</Label>
                     <Input
                         id="password"
                         type="password"
@@ -56,13 +56,13 @@ const submit = () => {
                         tabindex="4"
                         autocomplete="new-password"
                         v-model="form.password"
-                        placeholder="Password"
+                        placeholder="8文字以上"
                     />
                     <InputError :message="form.errors.password" />
                 </div>
 
                 <div class="grid gap-2">
-                    <Label for="password_confirmation">Confirm password</Label>
+                    <Label for="password_confirmation">パスワード（確認）</Label>
                     <Input
                         id="password_confirmation"
                         type="password"
@@ -70,20 +70,20 @@ const submit = () => {
                         tabindex="5"
                         autocomplete="new-password"
                         v-model="form.password_confirmation"
-                        placeholder="Confirm password"
+                        placeholder="もう一度入力"
                     />
                     <InputError :message="form.errors.password_confirmation" />
                 </div>
 
                 <Button type="submit" class="mt-2 w-full" tabindex="6" :disabled="form.processing">
                     <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
-                    Create account
+                    アカウントを作成
                 </Button>
             </div>
 
             <div class="text-center text-sm text-muted-foreground">
-                Already have an account?
-                <TextLink :href="route('login')" class="underline underline-offset-4" :tabindex="7">Log in</TextLink>
+                すでにアカウントをお持ちの方は
+                <TextLink :href="route('login')" class="underline underline-offset-4" :tabindex="7">ログイン</TextLink>
             </div>
         </form>
     </AuthBase>
