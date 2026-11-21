@@ -25,19 +25,24 @@ class RecipeController extends Controller
         $this->authorize('viewAny', Recipe::class);
 
         $keyword = $request->validated('q');
+        $time = $request->validated('time') !== null ? (int) $request->validated('time') : null;
+        $sort = $request->validated('sort') ?? 'new';
 
         $recipes = Recipe::query()
             ->search($keyword)
+            ->cookableWithin($time)
             ->with('user')
             ->withCount(['favorites', 'comments'])
             ->withFavoritedBy($request->user())
+            // 人気順はお気に入り数の多い順。同数なら新しい順
+            ->when($sort === 'popular', fn ($recipes) => $recipes->orderByDesc('favorites_count'))
             ->latest()
             ->paginate(20)
             ->withQueryString();
 
         return Inertia::render('recipes/Index', [
             'recipes' => RecipeResource::collection($recipes),
-            'filters' => ['q' => $keyword],
+            'filters' => ['q' => $keyword, 'time' => $time, 'sort' => $sort],
         ]);
     }
 
