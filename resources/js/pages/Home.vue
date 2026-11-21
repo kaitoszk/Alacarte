@@ -44,33 +44,29 @@ const tabs: { key: Tab; label: string }[] = [
 
     <AppLayout>
         <div class="flex flex-1 flex-col gap-6 p-4">
-            <div>
-                <h1 class="text-2xl font-semibold">今日は何を作る？</h1>
-                <p class="mt-1 text-sm text-muted-foreground">気になるレシピを眺めて決めましょう。</p>
-            </div>
-
-            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-sidebar-border/70">
-                <div class="flex">
-                    <button
-                        v-for="item in tabs"
-                        :key="item.key"
-                        type="button"
-                        class="-mb-px border-b-2 px-4 py-2 text-sm transition"
-                        :class="
-                            tab === item.key
-                                ? 'border-primary font-medium text-foreground'
-                                : 'border-transparent text-muted-foreground hover:text-foreground'
-                        "
-                        @click="loadFeed(item.key)"
-                    >
-                        {{ item.label }}
-                    </button>
-                </div>
-
-                <Button v-if="tab === 'all'" variant="secondary" size="sm" class="mb-2" @click="loadFeed('all')">
+            <!-- 見出し：コンセプト「今日何を作るか」をそのまま問いかける -->
+            <section class="rounded-2xl bg-primary/10 px-6 py-8 sm:px-10">
+                <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">今日、何つくる？</h1>
+                <p class="mt-2 text-sm text-muted-foreground sm:text-base">みんなのレシピを眺めて、今日の一品を決めましょう。</p>
+                <Button v-if="tab === 'all'" class="mt-5" @click="loadFeed('all')">
                     <Shuffle class="h-4 w-4" />
                     別のレシピを見る
                 </Button>
+            </section>
+
+            <div class="inline-flex w-fit rounded-full border bg-muted p-1" role="tablist">
+                <button
+                    v-for="item in tabs"
+                    :key="item.key"
+                    type="button"
+                    role="tab"
+                    :aria-selected="tab === item.key"
+                    class="rounded-full px-4 py-1.5 text-sm font-medium transition"
+                    :class="tab === item.key ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+                    @click="loadFeed(item.key)"
+                >
+                    {{ item.label }}
+                </button>
             </div>
 
             <!-- フォロー中タブの空状態は理由によって出し分ける -->
