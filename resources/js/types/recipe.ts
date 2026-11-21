@@ -133,4 +133,7 @@ export interface RecipeFormData {
 /** レシピ一覧の検索条件（URL のクエリと対応） */
 export interface RecipeFilters {
     q: string | null;
+    /** この分数以内で作れるレシピに絞る */
+    time: 15 | 30 | 60 | null;
+    sort: 'new' | 'popular';
 }
