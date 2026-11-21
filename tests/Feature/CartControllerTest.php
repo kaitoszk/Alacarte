@@ -132,3 +132,100 @@ test('レシピ詳細の isInCart は追加前は false、追加後は true に�
         ->get(route('recipes.show', $recipe))
         ->assertInertia(fn ($page) => $page->where('isInCart', true));
 });
+
+test('チェックの付け外しができ保存される', function () {
+    $cart = Cart::factory()->create(['is_checked' => false]);
+
+    $this->actingAs($cart->user)
+        ->patch(route('carts.update', $cart), ['is_checked' => true])
+        ->assertRedirect();
+    expect($cart->fresh()->is_checked)->toBeTrue();
+
+    $this->actingAs($cart->user)
+        ->patch(route('carts.update', $cart), ['is_checked' => false])
+        ->assertRedirect();
+    expect($cart->fresh()->is_checked)->toBeFalse();
+});
+
+test('同じ値のチェックが二重に届いても結果は変わらない', function () {
+    $cart = Cart::factory()->create(['is_checked' => false]);
+
+    $this->actingAs($cart->user)->patch(route('carts.update', $cart), ['is_checked' => true]);
+    $this->actingAs($cart->user)->patch(route('carts.update', $cart), ['is_checked' => true]);
+
+    expect($cart->fresh()->is_checked)->toBeTrue();
+});
+
+test('is_checked がない・boolean でない場合はバリデーションエラーになる', function (array $payload) {
+    $cart = Cart::factory()->create(['is_checked' => false]);
+
+    $this->actingAs($cart->user)
+        ->patch(route('carts.update', $cart), $payload)
+        ->assertSessionHasErrors('is_checked');
+    expect($cart->fresh()->is_checked)->toBeFalse();
+})->with([
+    'なし' => [[]],
+    '文字列' => [['is_checked' => 'yes']],
+]);
+
+test('材料を個別に削除できる', function () {
+    $cart = Cart::factory()->create();
+
+    $this->actingAs($cart->user)
+        ->delete(route('carts.destroy', $cart))
+        ->assertRedirect();
+
+    $this->assertModelMissing($cart);
+});
+
+test('チェック済みの一括削除は自分のチェック済みだけを消す', function () {
+    $user = User::factory()->create();
+    $checked = Cart::factory()->for($user)->create(['is_checked' => true]);
+    $unchecked = Cart::factory()->for($user)->create(['is_checked' => false]);
+    $othersChecked = Cart::factory()->create(['is_checked' => true]);
+
+    $this->actingAs($user)
+        ->delete(route('carts.destroyChecked'))
+        ->assertRedirect();
+
+    $this->assertModelMissing($checked);
+    $this->assertModelExists($unchecked);
+    $this->assertModelExists($othersChecked);
+});
+
+test('他人の材料は更新も削除もできない', function () {
+    $cart = Cart::factory()->create(['is_checked' => false]);
+    $other = User::factory()->create();
+
+    $this->actingAs($other)
+        ->patch(route('carts.update', $cart), ['is_checked' => true])
+        ->assertForbidden();
+    $this->actingAs($other)
+        ->delete(route('carts.destroy', $cart))
+        ->assertForbidden();
+
+    expect($cart->fresh()->is_checked)->toBeFalse();
+});
+
+test('未ログインはチェック・削除・一括削除ができない', function () {
+    $cart = Cart::factory()->create(['is_checked' => true]);
+
+    $this->patch(route('carts.update', $cart), ['is_checked' => false])->assertRedirect(route('login'));
+    $this->delete(route('carts.destroy', $cart))->assertRedirect(route('login'));
+    $this->delete(route('carts.destroyChecked'))->assertRedirect(route('login'));
+
+    $this->assertModelExists($cart);
+});
+
+test('レシピの材料を全部消すと再び追加できる状態に戻る', function () {
+    $user = User::factory()->create();
+    $recipe = recipeWithIngredients([['玉ねぎ', '1個']]);
+
+    $this->actingAs($user)->post(route('carts.store', $recipe));
+    $cart = Cart::where('user_id', $user->id)->firstOrFail();
+    $this->actingAs($user)->delete(route('carts.destroy', $cart));
+
+    $this->actingAs($user)
+        ->get(route('recipes.show', $recipe))
+        ->assertInertia(fn ($page) => $page->where('isInCart', false));
+});
