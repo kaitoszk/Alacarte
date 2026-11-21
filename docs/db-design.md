@@ -113,7 +113,7 @@ erDiagram
 | 8 | recipe_comments | レシピコメント情報 | ○ |
 | 9 | recipe_comment_goods | コメントいいね情報 | ○ |
 | 10 | recipe_drafts | 下書きレシピ情報 | △ 後回し |
-| 11 | carts | カート情報 | △ 後回し |
+| 11 | carts | カート情報（買い物リスト） | ○ |
 | 12 | admin_users | 管理者ユーザー情報 | △ 後回し |
 | 13 | recipe_categories | カテゴリ | × 除外（後述） |
 
@@ -128,7 +128,8 @@ erDiagram
 7. favorites
 8. recipe_comments
 9. recipe_comment_goods
-10. recipe_drafts / carts / admin_users（後回し分）
+10. carts
+11. recipe_drafts / admin_users（後回し分）
 
 ---
 
@@ -244,14 +245,21 @@ recipes とほぼ同一構造（view_count / deleted_at なし）。
 テーブルを分けると材料・手順も別テーブルが必要になり複雑化するため、
 実装時にどちらの設計を採るか判断すること。
 
-## 11. carts / カート情報（後回し）
+## 11. carts / カート情報（買い物リスト）
+
+レシピの材料を追加時点でコピーして持つ。当初は `ingredient_id`（FK → ingredients.id）で参照する設計だったが、
+レシピ更新時に ingredients を全削除→再作成する（`UpdateRecipeAction`）ため、FK だと元レシピの編集で買い物リストが消える。
+そのため材料名・分量をコピーし、元レシピへは `recipe_id` で辿る。削除は物理削除（SoftDeletes なし）。
 
 | カラム | 型 | Null | 制約・備考 |
 |---|---|---|---|
 | id | bigint unsigned | | PK, AI |
-| user_id | bigint unsigned | | FK → users.id |
-| ingredient_id | bigint unsigned | | FK → ingredients.id |
-| deleted_at | timestamp | ○ | SoftDeletes |
+| user_id | bigint unsigned | | FK → users.id, onDelete cascade |
+| recipe_id | bigint unsigned | | FK → recipes.id, onDelete cascade（レシピはソフトデリートのため、削除後も行は残る） |
+| name | string | | 材料名（追加時点のコピー） |
+| quantity | string | | 材料の量（追加時点のコピー） |
+| order_number | int | | レシピ内の材料の並び順 |
+| is_checked | boolean | | 購入済みチェック。default false |
 | created_at / updated_at | timestamp | ○ | |
 
 ## 12. admin_users / 管理者ユーザー情報（後回し）
