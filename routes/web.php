@@ -28,6 +28,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('recipes/{recipe}/favorite', [FavoriteController::class, 'destroy'])->name('favorites.destroy');
 
     Route::get('shopping-list', [CartController::class, 'index'])->name('carts.index');
+    // checked が {cart} に解決されないよう、{cart} 系より先に登録する
+    Route::delete('shopping-list/checked', [CartController::class, 'destroyChecked'])->name('carts.destroyChecked');
+    Route::patch('shopping-list/{cart}', [CartController::class, 'update'])->name('carts.update');
+    Route::delete('shopping-list/{cart}', [CartController::class, 'destroy'])->name('carts.destroy');
     Route::post('recipes/{recipe}/cart', [CartController::class, 'store'])->name('carts.store');
 
     Route::post('users/{user}/follow', [FollowController::class, 'store'])->name('follows.store');
