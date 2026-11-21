@@ -12,6 +12,7 @@ return [
     'current_password' => 'パスワードが正しくありません。',
     'email' => ':attributeには正しいメールアドレスを入力してください。',
     'image' => ':attributeには画像ファイルを指定してください。',
+    'in' => ':attributeの値が正しくありません。',
     'integer' => ':attributeには整数を入力してください。',
     'lowercase' => ':attributeは小文字で入力してください。',
     'max' => [
@@ -56,5 +57,8 @@ return [
         'steps.*.images' => '手順の画像',
         'steps.*.images.*' => '手順の画像',
         'is_checked' => 'チェック',
+        'q' => 'キーワード',
+        'time' => '調理時間',
+        'sort' => '並び順',
     ],
 ];

@@ -24,6 +24,8 @@ class IndexRecipeRequest extends FormRequest
     {
         return [
             'q' => ['nullable', 'string', 'max:50'],
+            'time' => ['nullable', 'integer', 'in:15,30,60'],
+            'sort' => ['nullable', 'in:new,popular'],
         ];
     }
 }

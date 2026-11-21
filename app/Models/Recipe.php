@@ -83,4 +83,15 @@ class Recipe extends Model
 
         return $query;
     }
+
+    /**
+     * 指定した分数以内で作れるレシピに絞る。null なら絞り込まない。
+     *
+     * @param  Builder<Recipe>  $query
+     * @return Builder<Recipe>
+     */
+    public function scopeCookableWithin(Builder $query, ?int $minutes): Builder
+    {
+        return $query->when($minutes !== null, fn (Builder $recipe) => $recipe->where('cooking_time', '<=', $minutes));
+    }
 }
