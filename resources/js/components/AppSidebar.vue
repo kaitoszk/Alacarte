@@ -5,13 +5,13 @@ import NavUser from '@/components/NavUser.vue';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, Folder, Heart, Home, User, UtensilsCrossed } from 'lucide-vue-next';
+import { BookOpen, Folder, Heart, Home, ShoppingCart, User, UtensilsCrossed } from 'lucide-vue-next';
 import { computed } from 'vue';
 import AppLogo from './AppLogo.vue';
 
 const page = usePage<SharedData>();
 
-// お気に入り・マイページは認証必須ルートなので、ゲストには出さない
+// お気に入り・買い物リスト・マイページは認証必須ルートなので、ゲストには出さない
 const mainNavItems = computed<NavItem[]>(() => [
     {
         title: 'ホーム',
@@ -29,6 +29,11 @@ const mainNavItems = computed<NavItem[]>(() => [
                   title: 'お気に入り',
                   href: '/favorites',
                   icon: Heart,
+              },
+              {
+                  title: '買い物リスト',
+                  href: '/shopping-list',
+                  icon: ShoppingCart,
               },
               {
                   title: 'マイページ',
