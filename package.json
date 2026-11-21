@@ -8,6 +8,7 @@
         "format": "prettier --write resources/",
         "format:check": "prettier --check resources/",
         "lint": "eslint . --fix",
+        "lint:check": "eslint .",
         "type-check": "vue-tsc --noEmit",
         "test:e2e": "playwright test"
     },
