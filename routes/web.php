@@ -27,6 +27,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('recipes/{recipe}/favorite', [FavoriteController::class, 'store'])->name('favorites.store');
     Route::delete('recipes/{recipe}/favorite', [FavoriteController::class, 'destroy'])->name('favorites.destroy');
 
+    Route::get('shopping-list', [CartController::class, 'index'])->name('carts.index');
     Route::post('recipes/{recipe}/cart', [CartController::class, 'store'])->name('carts.store');
 
     Route::post('users/{user}/follow', [FollowController::class, 'store'])->name('follows.store');
