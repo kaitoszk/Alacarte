@@ -7,6 +7,8 @@ use App\Models\Recipe;
 use App\Models\Step;
 use App\Models\StepImage;
 use App\Models\User;
+use Database\Factories\Support\PlaceholderImage;
+use Database\Seeders\Support\SeedPhoto;
 use Illuminate\Database\Seeder;
 
 class RecipeSeeder extends Seeder
@@ -20,7 +22,12 @@ class RecipeSeeder extends Seeder
 
         Recipe::factory()
             ->count(40)
-            ->state(fn () => ['user_id' => $userIds->random()])
+            ->state(fn () => [
+                'user_id' => $userIds->random(),
+                // レシピ名に合う料理写真があれば使い、なければ単色のプレースホルダー
+                'recipe_image_path' => fn (array $attributes) => SeedPhoto::storeForRecipe($attributes['title'])
+                    ?? PlaceholderImage::store('recipes', 'Recipe'),
+            ])
             ->create()
             ->each(function (Recipe $recipe) {
                 foreach (range(1, fake()->numberBetween(3, 8)) as $order) {
@@ -39,6 +46,9 @@ class RecipeSeeder extends Seeder
                     if (fake()->boolean(40)) {
                         StepImage::factory()
                             ->count(fake()->numberBetween(1, 2))
+                            ->state(fn () => [
+                                'step_image_path' => SeedPhoto::storeRandomStep() ?? PlaceholderImage::store('steps', 'Step'),
+                            ])
                             ->create(['step_id' => $step->id]);
                     }
                 }

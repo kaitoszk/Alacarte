@@ -62,7 +62,8 @@ class RecipeFactory extends Factory
             'user_id' => User::factory(),
             'title' => fake()->randomElement(self::$titles),
             'description' => fake()->optional(0.8)->randomElement(self::$descriptions),
-            'recipe_image_path' => PlaceholderImage::store('recipes', 'Recipe'),
+            // 上書きされたときに無駄な画像ファイルを作らないよう、クロージャで遅延生成する
+            'recipe_image_path' => fn () => PlaceholderImage::store('recipes', 'Recipe'),
             'cooking_time' => fake()->numberBetween(5, 120),
             'servings' => fake()->numberBetween(1, 6),
             'view_count' => fake()->numberBetween(0, 500),

@@ -21,7 +21,8 @@ class StepImageFactory extends Factory
     {
         return [
             'step_id' => Step::factory(),
-            'step_image_path' => PlaceholderImage::store('steps', 'Step'),
+            // 上書きされたときに無駄な画像ファイルを作らないよう、クロージャで遅延生成する
+            'step_image_path' => fn () => PlaceholderImage::store('steps', 'Step'),
         ];
     }
 }
