@@ -129,3 +129,8 @@ export interface RecipeFormData {
     ingredients: IngredientInput[];
     steps: StepInput[];
 }
+
+/** レシピ一覧の検索条件（URL のクエリと対応） */
+export interface RecipeFilters {
+    q: string | null;
+}
