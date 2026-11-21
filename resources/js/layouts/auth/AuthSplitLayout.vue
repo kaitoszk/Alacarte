@@ -33,7 +33,7 @@ defineProps<{
         <div class="flex items-center justify-center px-6 py-12">
             <div class="flex w-full max-w-sm flex-col gap-8">
                 <!-- スマホ: 上にロゴ -->
-                <Link :href="route('home')" class="flex justify-center lg:hidden" aria-label="Alacarte ホーム">
+                <Link :href="route('home')" class="mx-auto flex w-fit items-center lg:hidden" aria-label="Alacarte ホーム">
                     <AppLogo />
                 </Link>
 
