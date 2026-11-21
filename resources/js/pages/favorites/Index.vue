@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Pagination from '@/components/Pagination.vue';
 import RecipeCard from '@/components/recipes/RecipeCard.vue';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -31,18 +32,7 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'お気に入り', href: '/favor
                 <RecipeCard v-for="recipe in recipes.data" :key="recipe.id" :recipe="recipe" />
             </div>
 
-            <div v-if="recipes.meta.last_page > 1" class="flex flex-wrap justify-center gap-1">
-                <template v-for="link in recipes.meta.links" :key="link.label">
-                    <Link
-                        v-if="link.url"
-                        :href="link.url"
-                        class="rounded-md border px-3 py-1.5 text-sm"
-                        :class="link.active ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'"
-                        v-html="link.label"
-                    />
-                    <span v-else class="rounded-md border px-3 py-1.5 text-sm text-muted-foreground" v-html="link.label" />
-                </template>
-            </div>
+            <Pagination v-if="recipes.meta.last_page > 1" :links="recipes.meta.links" />
         </div>
     </AppLayout>
 </template>
