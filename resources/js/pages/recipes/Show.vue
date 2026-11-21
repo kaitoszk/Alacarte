@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import ConfirmModal from '@/components/ConfirmModal.vue';
 import CommentSection from '@/components/recipes/CommentSection.vue';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { getInitials } from '@/composables/useInitials';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import type { Recipe, RecipeComment } from '@/types/recipe';
@@ -86,98 +88,132 @@ const destroy = () => {
     <Head :title="recipe.title" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-4">
-            <img :src="recipe.recipe_image_url" :alt="recipe.title" class="aspect-video w-full rounded-xl object-cover" />
+        <div class="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 p-4">
+            <img :src="recipe.recipe_image_url" :alt="recipe.title" class="aspect-[16/9] max-h-[480px] w-full rounded-2xl object-cover" />
 
-            <div class="flex flex-wrap items-start justify-between gap-4">
-                <div class="flex flex-col gap-2">
-                    <h1 class="text-2xl font-semibold">{{ recipe.title }}</h1>
-                    <div v-if="recipe.user" class="flex flex-wrap items-center gap-2">
-                        <Link :href="route('users.show', { user: recipe.user.handle })" class="text-sm text-muted-foreground hover:underline">
-                            by {{ recipe.user.name }} (@{{ recipe.user.handle }})
-                        </Link>
-                        <Button
-                            v-if="canFollowAuthor"
-                            :variant="isFollowingAuthor ? 'secondary' : 'outline'"
-                            size="sm"
-                            class="gap-1.5"
-                            @click="toggleFollow"
-                        >
-                            <UserCheck v-if="isFollowingAuthor" class="h-3.5 w-3.5" />
-                            <UserPlus v-else class="h-3.5 w-3.5" />
-                            {{ isFollowingAuthor ? 'フォロー中' : 'フォロー' }}
+            <!-- タイトル・チップ・操作 -->
+            <div class="flex flex-col gap-4">
+                <div class="flex flex-wrap items-start justify-between gap-4">
+                    <h1 class="text-2xl font-bold leading-tight sm:text-3xl">{{ recipe.title }}</h1>
+
+                    <div v-if="isOwner" class="flex gap-2">
+                        <Button variant="outline" size="sm" as-child>
+                            <Link :href="route('recipes.edit', { recipe: recipe.id })">編集</Link>
                         </Button>
+                        <ConfirmModal title="このレシピを削除しますか？" description="削除すると一覧から表示されなくなります。" @confirm="destroy">
+                            <template #trigger>
+                                <Button variant="destructive" size="sm">削除</Button>
+                            </template>
+                        </ConfirmModal>
                     </div>
                 </div>
 
-                <div v-if="isOwner" class="flex gap-2">
-                    <Button variant="secondary" as-child>
-                        <Link :href="route('recipes.edit', { recipe: recipe.id })">編集</Link>
-                    </Button>
+                <div class="flex flex-wrap items-center gap-2 text-sm">
+                    <span class="flex items-center gap-1.5 rounded-full bg-muted px-3 py-1"
+                        ><Clock class="h-4 w-4" />{{ recipe.cooking_time }}分</span
+                    >
+                    <span class="flex items-center gap-1.5 rounded-full bg-muted px-3 py-1"><Users class="h-4 w-4" />{{ recipe.servings }}人分</span>
+                    <span class="flex items-center gap-1.5 rounded-full bg-muted px-3 py-1" aria-label="閲覧数"
+                        ><Eye class="h-4 w-4" />{{ recipe.view_count }}</span
+                    >
 
-                    <ConfirmModal title="このレシピを削除しますか？" description="削除すると一覧から表示されなくなります。" @confirm="destroy">
-                        <template #trigger>
-                            <Button variant="destructive">削除</Button>
-                        </template>
-                    </ConfirmModal>
+                    <Button
+                        v-if="isLoggedIn"
+                        :variant="recipe.is_favorited ? 'secondary' : 'outline'"
+                        size="sm"
+                        class="gap-1.5 rounded-full"
+                        @click="toggleFavorite"
+                    >
+                        <Heart class="h-4 w-4" :class="recipe.is_favorited ? 'fill-primary text-primary' : ''" />
+                        {{ recipe.is_favorited ? 'お気に入り済み' : 'お気に入り' }}
+                        <span class="text-muted-foreground">{{ recipe.favorites_count }}</span>
+                    </Button>
+                    <span v-else class="flex items-center gap-1.5 rounded-full bg-muted px-3 py-1" aria-label="お気に入り数">
+                        <Heart class="h-4 w-4" />{{ recipe.favorites_count }}
+                    </span>
+                </div>
+
+                <p v-if="recipe.description" class="whitespace-pre-wrap text-muted-foreground">{{ recipe.description }}</p>
+
+                <!-- 投稿者 -->
+                <div v-if="recipe.user" class="flex items-center justify-between gap-3 rounded-xl border p-4">
+                    <Link :href="route('users.show', { user: recipe.user.handle })" class="flex min-w-0 items-center gap-3 hover:underline">
+                        <Avatar class="size-10">
+                            <AvatarImage v-if="recipe.user.user_image_url" :src="recipe.user.user_image_url" :alt="recipe.user.name" />
+                            <AvatarFallback>{{ getInitials(recipe.user.name) }}</AvatarFallback>
+                        </Avatar>
+                        <span class="flex min-w-0 flex-col">
+                            <span class="truncate font-medium">{{ recipe.user.name }}</span>
+                            <span class="truncate text-xs text-muted-foreground">@{{ recipe.user.handle }}</span>
+                        </span>
+                    </Link>
+                    <Button
+                        v-if="canFollowAuthor"
+                        :variant="isFollowingAuthor ? 'secondary' : 'default'"
+                        size="sm"
+                        class="gap-1.5"
+                        @click="toggleFollow"
+                    >
+                        <UserCheck v-if="isFollowingAuthor" class="h-3.5 w-3.5" />
+                        <UserPlus v-else class="h-3.5 w-3.5" />
+                        {{ isFollowingAuthor ? 'フォロー中' : 'フォロー' }}
+                    </Button>
                 </div>
             </div>
 
-            <div class="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                <span class="flex items-center gap-1"><Clock class="h-4 w-4" />{{ recipe.cooking_time }}分</span>
-                <span class="flex items-center gap-1"><Users class="h-4 w-4" />{{ recipe.servings }}人分</span>
-                <span class="flex items-center gap-1"><Eye class="h-4 w-4" />{{ recipe.view_count }}</span>
-
-                <Button v-if="isLoggedIn" variant="ghost" size="sm" class="gap-1.5" @click="toggleFavorite">
-                    <Heart class="h-4 w-4" :class="recipe.is_favorited ? 'fill-red-500 text-red-500' : ''" />
-                    {{ recipe.is_favorited ? 'お気に入り解除' : 'お気に入り' }}
-                    <span>({{ recipe.favorites_count }})</span>
-                </Button>
-                <span v-else class="flex items-center gap-1"><Heart class="h-4 w-4" />{{ recipe.favorites_count }}</span>
-            </div>
-
-            <p v-if="recipe.description" class="whitespace-pre-wrap">{{ recipe.description }}</p>
-
-            <section v-if="recipe.ingredients?.length" class="flex flex-col gap-3">
-                <div class="flex flex-wrap items-center justify-between gap-2">
-                    <h2 class="text-lg font-medium">材料（{{ recipe.servings }}人分）</h2>
-                    <Button v-if="!isLoggedIn" variant="outline" size="sm" class="gap-1.5" as-child>
+            <!-- 材料（PC では左に固定）と作り方 -->
+            <div class="grid gap-8 lg:grid-cols-[320px_1fr]">
+                <section v-if="recipe.ingredients?.length" class="flex flex-col gap-3 self-start rounded-xl border bg-card p-5 lg:sticky lg:top-28">
+                    <h2 class="text-lg font-semibold">
+                        材料<span class="ml-1 text-sm font-normal text-muted-foreground">（{{ recipe.servings }}人分）</span>
+                    </h2>
+                    <ul class="divide-y">
+                        <li v-for="ingredient in recipe.ingredients" :key="ingredient.id" class="flex justify-between gap-4 py-2.5 text-sm">
+                            <span>{{ ingredient.name }}</span>
+                            <span class="shrink-0 text-muted-foreground">{{ ingredient.quantity }}</span>
+                        </li>
+                    </ul>
+                    <Button v-if="!isLoggedIn" class="w-full gap-1.5" as-child>
                         <Link :href="route('login')"><ShoppingCart class="h-4 w-4" />買い物リストに追加</Link>
                     </Button>
-                    <Button v-else variant="outline" size="sm" class="gap-1.5" :disabled="isInCart || isAddingToCart" @click="addToCart">
+                    <Button
+                        v-else
+                        class="w-full gap-1.5"
+                        :variant="isInCart ? 'secondary' : 'default'"
+                        :disabled="isInCart || isAddingToCart"
+                        @click="addToCart"
+                    >
                         <ShoppingCart class="h-4 w-4" />
                         {{ isInCart ? '買い物リストに追加済み' : '買い物リストに追加' }}
                     </Button>
-                </div>
-                <ul class="divide-y rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                    <li v-for="ingredient in recipe.ingredients" :key="ingredient.id" class="flex justify-between px-4 py-2.5 text-sm">
-                        <span>{{ ingredient.name }}</span>
-                        <span class="text-muted-foreground">{{ ingredient.quantity }}</span>
-                    </li>
-                </ul>
-            </section>
+                </section>
 
-            <section v-if="recipe.steps?.length" class="flex flex-col gap-4">
-                <h2 class="text-lg font-medium">作り方</h2>
-                <div v-for="step in recipe.steps" :key="step.id" class="flex flex-col gap-2">
-                    <div class="flex gap-3">
-                        <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm text-primary-foreground">
-                            {{ step.order_number }}
-                        </span>
-                        <p class="whitespace-pre-wrap pt-0.5">{{ step.description }}</p>
-                    </div>
-
-                    <div v-if="step.images?.length" class="flex flex-wrap gap-2 pl-10">
-                        <img
-                            v-for="image in step.images"
-                            :key="image.id"
-                            :src="image.step_image_url"
-                            :alt="`手順${step.order_number}の画像`"
-                            class="h-32 w-32 rounded-lg object-cover"
-                        />
-                    </div>
-                </div>
-            </section>
+                <section v-if="recipe.steps?.length" class="flex flex-col gap-6">
+                    <h2 class="text-lg font-semibold">作り方</h2>
+                    <ol class="flex flex-col gap-6">
+                        <li v-for="step in recipe.steps" :key="step.id" class="flex gap-4">
+                            <span
+                                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground"
+                            >
+                                {{ step.order_number }}
+                            </span>
+                            <div class="flex min-w-0 flex-col gap-3 pt-1">
+                                <p class="whitespace-pre-wrap leading-relaxed">{{ step.description }}</p>
+                                <div v-if="step.images?.length" class="flex flex-wrap gap-2">
+                                    <img
+                                        v-for="image in step.images"
+                                        :key="image.id"
+                                        :src="image.step_image_url"
+                                        :alt="`手順${step.order_number}の画像`"
+                                        class="h-36 w-36 rounded-lg object-cover sm:h-44 sm:w-44"
+                                        loading="lazy"
+                                    />
+                                </div>
+                            </div>
+                        </li>
+                    </ol>
+                </section>
+            </div>
 
             <CommentSection :recipe-id="recipe.id" :comments="comments.data" />
         </div>
