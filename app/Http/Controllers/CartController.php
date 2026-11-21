@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Cart\AddRecipeToCartAction;
+use App\Http\Requests\UpdateCartRequest;
 use App\Http\Resources\CartResource;
 use App\Models\Cart;
 use App\Models\Recipe;
@@ -49,6 +50,40 @@ class CartController extends Controller
         $this->authorize('create', Cart::class);
 
         $action->handle($request->user(), $recipe);
+
+        return back();
+    }
+
+    /**
+     * 購入済みチェックを付け外しする。
+     */
+    public function update(UpdateCartRequest $request, Cart $cart): RedirectResponse
+    {
+        $this->authorize('update', $cart);
+
+        $cart->update($request->validated());
+
+        return back();
+    }
+
+    /**
+     * 材料を1件削除する。
+     */
+    public function destroy(Cart $cart): RedirectResponse
+    {
+        $this->authorize('delete', $cart);
+
+        $cart->delete();
+
+        return back();
+    }
+
+    /**
+     * 自分のチェック済みの材料をまとめて削除する。対象をクエリで自分の行に絞るため、行ごとの認可は不要。
+     */
+    public function destroyChecked(Request $request): RedirectResponse
+    {
+        $request->user()->carts()->where('is_checked', true)->delete();
 
         return back();
     }

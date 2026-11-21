@@ -1,15 +1,47 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import type { CartGroup } from '@/types/cart';
-import { Head, Link } from '@inertiajs/vue3';
+import type { CartGroup, CartItem } from '@/types/cart';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { Trash2 } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 
-defineProps<{
+const props = defineProps<{
     groups: CartGroup[];
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: '買い物リスト', href: '/shopping-list' }];
+
+const hasChecked = computed(() => props.groups.some((group) => group.items.some((item) => item.is_checked)));
+
+/** 反転後の値を明示して送る（サーバー側は冪等） */
+const toggle = (item: CartItem) => {
+    router.patch(route('carts.update', { cart: item.id }), { is_checked: !item.is_checked }, { preserveScroll: true });
+};
+
+const destroy = (item: CartItem) => {
+    router.delete(route('carts.destroy', { cart: item.id }), { preserveScroll: true });
+};
+
+const isConfirmOpen = ref(false);
+const destroyChecked = () => {
+    router.delete(route('carts.destroyChecked'), {
+        preserveScroll: true,
+        onSuccess: () => (isConfirmOpen.value = false),
+    });
+};
 </script>
 
 <template>
@@ -17,7 +49,27 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: '買い物リスト', href: '/sh
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex flex-1 flex-col gap-6 p-4">
-            <h1 class="text-2xl font-semibold">買い物リスト</h1>
+            <div class="flex max-w-2xl flex-wrap items-center justify-between gap-2">
+                <h1 class="text-2xl font-semibold">買い物リスト</h1>
+
+                <Dialog v-if="hasChecked" v-model:open="isConfirmOpen">
+                    <DialogTrigger as-child>
+                        <Button variant="outline" size="sm">チェック済みを削除</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader class="space-y-3">
+                            <DialogTitle>チェック済みの材料を削除しますか？</DialogTitle>
+                            <DialogDescription>チェックを付けた材料が買い物リストから消えます。</DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                            <DialogClose as-child>
+                                <Button variant="secondary">キャンセル</Button>
+                            </DialogClose>
+                            <Button variant="destructive" @click="destroyChecked">削除する</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </div>
 
             <div v-if="groups.length === 0" class="flex flex-col items-center gap-3 py-16 text-center">
                 <p class="text-muted-foreground">買い物リストは空です。</p>
@@ -35,14 +87,22 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: '買い物リスト', href: '/sh
                         </Link>
                     </h2>
                     <ul class="divide-y">
-                        <li
-                            v-for="item in group.items"
-                            :key="item.id"
-                            class="flex justify-between py-2 text-sm"
-                            :class="item.is_checked ? 'text-muted-foreground line-through' : ''"
-                        >
-                            <span>{{ item.name }}</span>
-                            <span>{{ item.quantity }}</span>
+                        <li v-for="item in group.items" :key="item.id" class="flex items-center gap-2 py-1">
+                            <!-- 行全体をボタンにしてチェックを切り替える。Checkbox は表示専用（クリックが二重に発火しないように） -->
+                            <button
+                                type="button"
+                                class="flex flex-1 items-center gap-3 rounded-md px-1 py-1.5 text-left text-sm hover:bg-accent"
+                                :class="item.is_checked ? 'text-muted-foreground line-through' : ''"
+                                :aria-pressed="item.is_checked"
+                                @click="toggle(item)"
+                            >
+                                <Checkbox :checked="item.is_checked" class="pointer-events-none" tabindex="-1" aria-hidden="true" />
+                                <span class="flex-1">{{ item.name }}</span>
+                                <span>{{ item.quantity }}</span>
+                            </button>
+                            <Button variant="ghost" size="icon" :aria-label="`${item.name}を削除`" @click="destroy(item)">
+                                <Trash2 class="h-4 w-4" />
+                            </Button>
                         </li>
                     </ul>
                 </section>
