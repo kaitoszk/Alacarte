@@ -46,7 +46,7 @@ test('ゲストでもTopのみんなのレシピが描画される', async ({ pa
 
     await page.goto('/');
 
-    await expect(page.getByRole('heading', { name: '今日、何つくる？' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '存在しない見出し' })).toBeVisible();
     await expect(recipeCards(page).first().locator('img')).toBeVisible();
 
     expect(errors).toEqual([]);
