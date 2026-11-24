@@ -18,9 +18,16 @@ class RecipeSeeder extends Seeder
     {
         $userIds = User::pluck('id');
 
+        // テストユーザーのフォロー中フィードが空にならないよう、
+        // 最初の1件はフォロー先の誰かのレシピにする（E2E がこれを前提にしている）
+        $followeeId = User::where('handle', 'testuser')->firstOrFail()
+            ->followings()->inRandomOrder()->value('users.id');
+
         Recipe::factory()
             ->count(40)
-            ->state(fn () => ['user_id' => $userIds->random()])
+            ->sequence(fn ($sequence) => [
+                'user_id' => $sequence->index === 0 ? $followeeId : $userIds->random(),
+            ])
             ->create()
             ->each(function (Recipe $recipe) {
                 foreach (range(1, fake()->numberBetween(3, 8)) as $order) {

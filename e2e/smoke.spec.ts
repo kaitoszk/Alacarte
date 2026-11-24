@@ -69,7 +69,7 @@ test('ログインするとフォロー中タブにレシピが並ぶ', async ({
     await login(page);
     await page.goto('/?tab=following');
 
-    // シードで test user は3人フォローしており、そのレシピが存在する
+    // フォロー中のうち少なくとも1人はレシピを持つ（シードで保証）
     await expect(recipeCards(page).first().locator('img')).toBeVisible();
 
     expect(errors).toEqual([]);
