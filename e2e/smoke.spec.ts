@@ -18,6 +18,11 @@ const collectPageErrors = (page: Page): string[] => {
     });
 
     page.on('requestfailed', (request) => {
+        // 遅延読み込み中の画像が画面遷移で中断されたもの（ERR_ABORTED）は描画の不具合ではないので拾わない。
+        // 404 などの読み込み失敗は console.error 側に出る
+        if (request.failure()?.errorText === 'net::ERR_ABORTED') {
+            return;
+        }
         errors.push(`requestfailed: ${request.url()} (${request.failure()?.errorText})`);
     });
 
@@ -29,9 +34,9 @@ const recipeCards = (page: Page) => page.locator('a[href*="/recipes/"]:has(img)'
 
 const login = async (page: Page) => {
     await page.goto('/login');
-    await page.getByLabel('Email address').fill('test@example.com');
-    await page.getByLabel('Password', { exact: true }).fill('password');
-    await page.getByRole('button', { name: 'Log in' }).click();
+    await page.getByLabel('メールアドレス').fill('test@example.com');
+    await page.getByLabel('パスワード', { exact: true }).fill('password');
+    await page.getByRole('button', { name: 'ログイン', exact: true }).click();
     // /dashboard は自分のプロフィール（マイページ）へリダイレクトする
     await page.waitForURL('**/users/**');
 };
@@ -41,7 +46,7 @@ test('ゲストでもTopのみんなのレシピが描画される', async ({ pa
 
     await page.goto('/');
 
-    await expect(page.getByRole('heading', { name: '今日は何を作る？' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '今日、何つくる？' })).toBeVisible();
     await expect(recipeCards(page).first().locator('img')).toBeVisible();
 
     expect(errors).toEqual([]);
@@ -53,11 +58,11 @@ test('Topのタブを切り替えられる', async ({ page }) => {
     await page.goto('/');
 
     // ゲストのフォロー中タブはログイン導線が出る
-    await page.getByRole('button', { name: 'フォロー中' }).click();
+    await page.getByRole('tab', { name: 'フォロー中' }).click();
     await expect(page.getByText('ログインすると、フォロー中のユーザーのレシピが並びます。')).toBeVisible();
 
     // みんなのレシピに戻せる
-    await page.getByRole('button', { name: 'みんなのレシピ' }).click();
+    await page.getByRole('tab', { name: 'みんなのレシピ' }).click();
     await expect(recipeCards(page).first().locator('img')).toBeVisible();
 
     expect(errors).toEqual([]);
@@ -121,7 +126,7 @@ test('投稿者をフォロー・解除できる', async ({ page }) => {
     // 他人のレシピを探す（自分のレシピにはフォローボタンが出ない）
     await page.goto('/recipes');
     for (const card of await recipeCards(page).all()) {
-        if (!(await card.innerText()).includes('by Test User')) {
+        if (!(await card.innerText()).includes('Test User')) {
             await card.click();
             break;
         }
@@ -153,7 +158,8 @@ test('レシピ詳細から投稿者のプロフィールへ遷移できる', as
     await page.goto('/recipes');
     await recipeCards(page).first().click();
 
-    const author = page.getByRole('link', { name: /^by / });
+    // 投稿者欄のリンク（名前と @handle を含む）
+    const author = page.getByRole('link').filter({ hasText: /@[\w.-]+/ });
     await expect(author).toBeVisible();
     const handle = (await author.innerText()).match(/@([\w.-]+)/)?.[1];
 
@@ -212,26 +218,27 @@ test('お気に入りを登録して一覧に出し、解除できる', async ({
     await login(page);
     await page.goto('/recipes');
 
-    const title = await recipeCards(page).first().locator('h2').innerText();
+    // シードではタイトルが重複しうるので、リンク先（レシピID）で照合する
+    const href = await recipeCards(page).first().getAttribute('href');
     await recipeCards(page).first().click();
 
-    // 「お気に入り」「お気に入り解除」どちらの状態でも同じボタンを掴む
+    // 「お気に入り」「お気に入り済み」どちらの状態でも同じボタンを掴む
     const toggle = page.getByRole('button', { name: /^お気に入り/ });
     // isVisible() は待機しないので、状態を見る前に描画完了を待つ
     await expect(toggle).toBeVisible();
 
     // 直前の実行結果に関わらず未登録から始める
-    if ((await toggle.innerText()).includes('解除')) {
+    if ((await toggle.innerText()).includes('済み')) {
         await toggle.click();
-        await expect(toggle).not.toContainText('解除');
+        await expect(toggle).not.toContainText('済み');
     }
 
     await toggle.click();
-    await expect(toggle).toContainText('解除');
+    await expect(toggle).toContainText('済み');
 
     await page.goto('/favorites');
     await expect(page.getByRole('heading', { name: 'お気に入り' })).toBeVisible();
-    await expect(page.getByText(title, { exact: true })).toBeVisible();
+    await expect(page.locator(`a[href="${href}"]`)).toBeVisible();
 
     expect(errors).toEqual([]);
 });
