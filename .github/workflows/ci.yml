@@ -64,3 +64,66 @@ jobs:
 
       - name: Tests
         run: php artisan test
+
+  # ビルド済みアセット + php artisan serve + SQLite のシード済み DB で
+  # Playwright のスモークテストを走らせる（サーバーは playwright.config.ts の webServer が起動する）
+  e2e:
+    runs-on: ubuntu-latest
+
+    env:
+      APP_URL: http://127.0.0.1:8000
+      DB_CONNECTION: sqlite
+      DB_DATABASE: ${{ github.workspace }}/database/database.sqlite
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+          coverage: none
+          # シードのプレースホルダー画像を GD で生成する
+          extensions: gd
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install Composer Dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Install Node Dependencies
+        run: npm ci
+
+      - name: Prepare Environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Prepare Database
+        run: |
+          touch database/database.sqlite
+          php artisan migrate --seed --force
+          php artisan storage:link
+
+      - name: Build
+        run: npm run build
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E
+        run: npm run test:e2e
+
+      - name: Upload Test Results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: test-results/
+          retention-days: 7
