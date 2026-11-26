@@ -24,16 +24,16 @@ class StoreRecipeRequest extends FormRequest
     {
         return [
             'title' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
+            'description' => ['nullable', 'string', 'max:2000'],
             'recipe_image' => ['required', 'image', 'max:5120'],
-            'cooking_time' => ['required', 'integer', 'min:1'],
-            'servings' => ['required', 'integer', 'min:1'],
-            'ingredients' => ['required', 'array', 'min:1'],
+            'cooking_time' => ['required', 'integer', 'min:1', 'max:1440'],
+            'servings' => ['required', 'integer', 'min:1', 'max:100'],
+            'ingredients' => ['required', 'array', 'min:1', 'max:50'],
             'ingredients.*.name' => ['required', 'string', 'max:255'],
             'ingredients.*.quantity' => ['required', 'string', 'max:255'],
-            'steps' => ['required', 'array', 'min:1'],
-            'steps.*.description' => ['required', 'string'],
-            'steps.*.images' => ['nullable', 'array'],
+            'steps' => ['required', 'array', 'min:1', 'max:50'],
+            'steps.*.description' => ['required', 'string', 'max:2000'],
+            'steps.*.images' => ['nullable', 'array', 'max:3'],
             'steps.*.images.*' => ['image', 'max:5120'],
         ];
     }
