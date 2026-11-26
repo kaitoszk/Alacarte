@@ -21,6 +21,8 @@ export interface SharedData {
     name: string;
     quote: { message: string; author: string };
     auth: Auth;
+    /** リダイレクト時に1回だけ表示するメッセージ */
+    flash: { success: string | null };
     ziggy: {
         location: string;
         url: string;
