@@ -9,7 +9,7 @@ import UserMenuContent from '@/components/UserMenuContent.vue';
 import { getInitials } from '@/composables/useInitials';
 import type { BreadcrumbItem as BreadcrumbItemType, NavItem, SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { Heart, Home, Menu, Plus, ShoppingCart, UtensilsCrossed } from 'lucide-vue-next';
+import { CalendarDays, Heart, Home, Menu, Plus, ShoppingCart, UtensilsCrossed } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 interface Props {
@@ -23,13 +23,14 @@ const props = withDefaults(defineProps<Props>(), {
 const page = usePage<SharedData>();
 const auth = computed(() => page.props.auth);
 
-// お気に入り・買い物リストは認証必須ルートなので、ゲストには出さない
+// お気に入り・献立・買い物リストは認証必須ルートなので、ゲストには出さない
 const navItems = computed<NavItem[]>(() => [
     { title: 'ホーム', href: '/', icon: Home },
     { title: 'レシピ', href: '/recipes', icon: UtensilsCrossed },
     ...(auth.value.user
         ? [
               { title: 'お気に入り', href: '/favorites', icon: Heart },
+              { title: '献立', href: '/meal-plan', icon: CalendarDays },
               { title: '買い物リスト', href: '/shopping-list', icon: ShoppingCart },
           ]
         : []),

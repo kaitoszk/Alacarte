@@ -243,3 +243,39 @@ test('お気に入りを登録して一覧に出し、解除できる', async ({
 
     expect(errors).toEqual([]);
 });
+
+test('レシピ詳細から献立に追加して献立ページに出し、外せる', async ({ page }) => {
+    const errors = collectPageErrors(page);
+
+    await login(page);
+    await page.goto('/recipes');
+
+    // シードではタイトルが重複しうるので、リンク先（レシピID）で照合する
+    const href = await recipeCards(page).first().getAttribute('href');
+    await recipeCards(page).first().click();
+
+    await page.getByRole('button', { name: '献立に追加' }).click();
+    const dialog = page.getByRole('dialog');
+    const date = await dialog.getByLabel('作る日').inputValue();
+    await dialog.getByRole('button', { name: '追加する' }).click();
+
+    // 直前の実行で同じ日に入れたままでも進めるよう、二重登録エラーなら閉じて続ける
+    const duplicate = dialog.getByText('その日にはすでに追加されています。');
+    await expect(dialog.or(page.getByRole('status'))).toBeVisible();
+    if (await duplicate.isVisible()) {
+        await dialog.getByRole('button', { name: 'キャンセル' }).click();
+    } else {
+        await expect(page.getByRole('status')).toContainText('献立に追加しました');
+    }
+
+    await page.goto(`/meal-plan?week=${date}`);
+    await expect(page.getByRole('heading', { name: '献立', exact: true })).toBeVisible();
+    const day = page.locator(`li[data-date="${date}"]`);
+    const entry = day.locator('li').filter({ has: page.locator(`a[href="${href}"]`) });
+    await expect(entry).toBeVisible();
+
+    await entry.getByRole('button', { name: /を献立から外す$/ }).click();
+    await expect(entry).toHaveCount(0);
+
+    expect(errors).toEqual([]);
+});

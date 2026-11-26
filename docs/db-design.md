@@ -29,6 +29,8 @@ erDiagram
     users ||--o{ recipe_comments : ""
     recipe_comments ||--o{ recipe_comment_goods : ""
     users ||--o{ recipe_comment_goods : ""
+    users ||--o{ meal_plans : ""
+    recipes ||--o{ meal_plans : ""
 
     users {
         bigint id PK
@@ -98,6 +100,13 @@ erDiagram
         bigint user_id FK
         bigint comment_id FK
     }
+
+    meal_plans {
+        bigint id PK
+        bigint user_id FK
+        bigint recipe_id FK
+        date date "作る日"
+    }
 ```
 
 ## テーブル一覧
@@ -117,6 +126,7 @@ erDiagram
 | 11 | carts | カート情報（買い物リスト） | ○ |
 | 12 | admin_users | 管理者ユーザー情報 | △ 後回し |
 | 13 | recipe_categories | カテゴリ | × 除外（後述） |
+| 14 | meal_plans | 献立情報 | ○ |
 
 ## マイグレーション作成順（依存順）
 
@@ -130,7 +140,8 @@ erDiagram
 8. recipe_comments
 9. recipe_comment_goods
 10. carts
-11. admin_users（後回し分）
+11. meal_plans
+12. admin_users（後回し分）
 
 ---
 
@@ -282,6 +293,22 @@ users とほぼ同一構造（handle なし、image_path）。
 - `category_recipe(recipe_id, category_id)` … 多対多の中間テーブル
 
 ---
+
+## 14. meal_plans / 献立情報
+
+ある日に作るレシピ。1日に複数のレシピを入れられる。朝・昼・夜の枠は持たない。
+曜日ではなく実際の日付で持つため、過去の献立はそのまま残り、週の表示は日付の範囲（月曜〜日曜）で取り出す。
+「今日」はアプリ全体（UTC）とは別に日本時間で決める（`MealPlan::today()`）。追加できるのは今日〜13日後。
+
+| カラム | 型 | Null | 制約・備考 |
+|---|---|---|---|
+| id | bigint unsigned | | PK, AI |
+| user_id | bigint unsigned | | FK → users.id, onDelete cascade |
+| recipe_id | bigint unsigned | | FK → recipes.id, onDelete cascade（レシピはソフトデリートのため行は残る。表示時に除外する） |
+| date | date | | 作る日 |
+| created_at / updated_at | timestamp | ○ | |
+
+- `(user_id, date, recipe_id)` 複合ユニーク（同じ日に同じレシピを二重登録させない）
 
 ## Topページ2フィードのクエリ方針
 

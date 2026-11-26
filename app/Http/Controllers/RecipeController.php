@@ -9,6 +9,7 @@ use App\Http\Requests\StoreRecipeRequest;
 use App\Http\Requests\UpdateRecipeRequest;
 use App\Http\Resources\RecipeCommentResource;
 use App\Http\Resources\RecipeResource;
+use App\Models\MealPlan;
 use App\Models\Recipe;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -98,6 +99,8 @@ class RecipeController extends Controller
             'comments' => RecipeCommentResource::collection($comments),
             'isFollowingAuthor' => (bool) $request->user()?->followings()->whereKey($recipe->user_id)->exists(),
             'isInCart' => (bool) $request->user()?->carts()->where('recipe_id', $recipe->id)->exists(),
+            // 献立に追加できる日付（日本時間の今日〜13日後）。サーバーの検証と同じ範囲を選択肢に出す
+            'mealPlanDates' => $request->user() ? MealPlan::addableDates() : [],
         ]);
     }
 

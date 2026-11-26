@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import ConfirmModal from '@/components/ConfirmModal.vue';
+import InputError from '@/components/InputError.vue';
 import CommentSection from '@/components/recipes/CommentSection.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { getInitials } from '@/composables/useInitials';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { formatMonthDayWithWeekday } from '@/lib/date';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import type { Recipe, RecipeComment } from '@/types/recipe';
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { Clock, Eye, Heart, ImageOff, ShoppingCart, UserCheck, UserPlus, Users } from 'lucide-vue-next';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
+import { CalendarPlus, Clock, Eye, Heart, ImageOff, ShoppingCart, UserCheck, UserPlus, Users } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{
@@ -16,6 +18,8 @@ const props = defineProps<{
     comments: { data: RecipeComment[] };
     isFollowingAuthor: boolean;
     isInCart: boolean;
+    /** 献立に追加できる日付（Y-m-d、日本時間の今日〜13日後）。ゲストは空 */
+    mealPlanDates: string[];
 }>();
 
 const page = usePage<SharedData>();
@@ -52,6 +56,24 @@ const addToCart = () => {
             onFinish: () => (isAddingToCart.value = false),
         },
     );
+};
+
+/** 献立に追加する。日付を選ぶモーダルを出し、追加できたら追加した日を画面に残す */
+const isMealPlanModalOpen = ref(false);
+const addedMealPlanDate = ref<string | null>(null);
+const mealPlanForm = useForm({ date: props.mealPlanDates[0] ?? '' });
+
+const dateLabel = (date: string, index: number): string =>
+    index === 0 ? `${formatMonthDayWithWeekday(date)} 今日` : formatMonthDayWithWeekday(date);
+
+const addToMealPlan = () => {
+    mealPlanForm.post(route('meal-plans.store', { recipe: recipe.value.id }), {
+        preserveScroll: true,
+        onSuccess: () => {
+            addedMealPlanDate.value = mealPlanForm.date;
+            isMealPlanModalOpen.value = false;
+        },
+    });
 };
 
 /** 投稿者のフォローをトグルする。自分のレシピとゲストには出さない */
@@ -155,7 +177,43 @@ const destroy = () => {
                     <span v-else-if="!isDraft" class="flex items-center gap-1.5 rounded-full bg-muted px-3 py-1" aria-label="お気に入り数">
                         <Heart class="h-4 w-4" />{{ recipe.favorites_count }}
                     </span>
+
+                    <Button v-if="!isDraft && !isLoggedIn" variant="outline" size="sm" class="gap-1.5 rounded-full" as-child>
+                        <Link :href="route('login')"><CalendarPlus class="h-4 w-4" />献立に追加</Link>
+                    </Button>
+                    <ConfirmModal
+                        v-else-if="!isDraft"
+                        v-model:open="isMealPlanModalOpen"
+                        title="献立に追加"
+                        description="このレシピを作る日を選んでください。"
+                        confirm-label="追加する"
+                        variant="default"
+                        :processing="mealPlanForm.processing"
+                        @confirm="addToMealPlan"
+                    >
+                        <template #trigger>
+                            <Button variant="outline" size="sm" class="gap-1.5 rounded-full" @click="mealPlanForm.clearErrors()">
+                                <CalendarPlus class="h-4 w-4" />献立に追加
+                            </Button>
+                        </template>
+                        <label class="flex flex-col gap-2 text-sm">
+                            <span class="font-medium">作る日</span>
+                            <select
+                                v-model="mealPlanForm.date"
+                                name="date"
+                                class="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            >
+                                <option v-for="(date, index) in mealPlanDates" :key="date" :value="date">{{ dateLabel(date, index) }}</option>
+                            </select>
+                        </label>
+                        <InputError :message="mealPlanForm.errors.date" />
+                    </ConfirmModal>
                 </div>
+
+                <p v-if="addedMealPlanDate" class="text-sm" role="status">
+                    {{ formatMonthDayWithWeekday(addedMealPlanDate) }}の献立に追加しました。
+                    <Link :href="route('meal-plans.index', { week: addedMealPlanDate })" class="text-primary-strong underline">献立を見る</Link>
+                </p>
 
                 <p v-if="recipe.description" class="whitespace-pre-wrap text-muted-foreground">{{ recipe.description }}</p>
 
