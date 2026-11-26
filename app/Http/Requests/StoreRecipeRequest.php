@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\MaxTotalStepImages;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -31,7 +32,7 @@ class StoreRecipeRequest extends FormRequest
             'ingredients' => ['required', 'array', 'min:1', 'max:50'],
             'ingredients.*.name' => ['required', 'string', 'max:255'],
             'ingredients.*.quantity' => ['required', 'string', 'max:255'],
-            'steps' => ['required', 'array', 'min:1', 'max:50'],
+            'steps' => ['required', 'array', 'min:1', 'max:50', new MaxTotalStepImages],
             'steps.*.description' => ['required', 'string', 'max:2000'],
             'steps.*.images' => ['nullable', 'array', 'max:3'],
             'steps.*.images.*' => ['image', 'max:5120'],
