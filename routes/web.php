@@ -6,6 +6,7 @@ use App\Http\Controllers\DraftController;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\FollowController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\MealPlanController;
 use App\Http\Controllers\RecipeCommentController;
 use App\Http\Controllers\RecipeController;
 use App\Http\Controllers\UserController;
@@ -38,6 +39,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('shopping-list/{cart}', [CartController::class, 'update'])->middleware('throttle:writes')->name('carts.update');
     Route::delete('shopping-list/{cart}', [CartController::class, 'destroy'])->middleware('throttle:writes')->name('carts.destroy');
     Route::post('recipes/{recipe}/cart', [CartController::class, 'store'])->middleware('throttle:writes')->name('carts.store');
+
+    Route::get('meal-plan', [MealPlanController::class, 'index'])->name('meal-plans.index');
+    Route::post('recipes/{recipe}/meal-plan', [MealPlanController::class, 'store'])->middleware('throttle:writes')->name('meal-plans.store');
+    Route::delete('meal-plan/{mealPlan}', [MealPlanController::class, 'destroy'])->middleware('throttle:writes')->name('meal-plans.destroy');
 
     Route::post('users/{user}/follow', [FollowController::class, 'store'])->middleware('throttle:writes')->name('follows.store');
     Route::delete('users/{user}/follow', [FollowController::class, 'destroy'])->middleware('throttle:writes')->name('follows.destroy');
