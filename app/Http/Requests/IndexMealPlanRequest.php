@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\MealPlan;
 use Carbon\CarbonImmutable;
+use Carbon\Exceptions\InvalidFormatException;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -33,7 +34,12 @@ class IndexMealPlanRequest extends FormRequest
     public function weekStart(): CarbonImmutable
     {
         $week = $this->query('week');
-        $date = is_string($week) ? CarbonImmutable::createFromFormat('!Y-m-d', $week, MealPlan::TIMEZONE) : null;
+
+        try {
+            $date = is_string($week) ? CarbonImmutable::createFromFormat('!Y-m-d', $week, MealPlan::TIMEZONE) : null;
+        } catch (InvalidFormatException) {
+            $date = null;
+        }
 
         // createFromFormat は 2026-02-31 のような日付を繰り上げて受け入れるため、往復して一致するか確かめる
         if (! $date instanceof CarbonImmutable || $date->toDateString() !== $week) {

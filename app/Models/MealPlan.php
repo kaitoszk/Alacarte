@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -26,11 +27,16 @@ class MealPlan extends Model
         'date',
     ];
 
-    protected function casts(): array
+    /**
+     * date キャストだと SQLite では「Y-m-d 00:00:00」で保存され、Y-m-d との照合（unique 検証・firstOrCreate）がずれる。
+     * DB には常に Y-m-d で書き、読むときだけ日付オブジェクトにする。
+     */
+    protected function date(): Attribute
     {
-        return [
-            'date' => 'immutable_date',
-        ];
+        return Attribute::make(
+            get: fn (string $value) => CarbonImmutable::parse($value)->startOfDay(),
+            set: fn (CarbonImmutable|string $value) => CarbonImmutable::parse($value)->toDateString(),
+        );
     }
 
     /** 日本時間の今日（0時） */
