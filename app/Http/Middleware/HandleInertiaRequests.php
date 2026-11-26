@@ -47,6 +47,9 @@ class HandleInertiaRequests extends Middleware
                 // data で包まずに渡す（フロントは auth.user.xxx で参照している）
                 'user' => $request->user() ? (new AuthUserResource($request->user()))->resolve($request) : null,
             ],
+            'flash' => [
+                'success' => fn () => $request->session()->get('success'),
+            ],
         ]);
     }
 }

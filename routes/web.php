@@ -6,6 +6,7 @@ use App\Http\Controllers\DraftController;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\FollowController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\MealPlanCartController;
 use App\Http\Controllers\MealPlanController;
 use App\Http\Controllers\RecipeCommentController;
 use App\Http\Controllers\RecipeController;
@@ -42,6 +43,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('meal-plan', [MealPlanController::class, 'index'])->name('meal-plans.index');
     Route::post('recipes/{recipe}/meal-plan', [MealPlanController::class, 'store'])->middleware('throttle:writes')->name('meal-plans.store');
+    Route::post('meal-plan/cart', [MealPlanCartController::class, 'store'])->middleware('throttle:writes')->name('meal-plans.cart.store');
     Route::delete('meal-plan/{mealPlan}', [MealPlanController::class, 'destroy'])->middleware('throttle:writes')->name('meal-plans.destroy');
 
     Route::post('users/{user}/follow', [FollowController::class, 'store'])->middleware('throttle:writes')->name('follows.store');

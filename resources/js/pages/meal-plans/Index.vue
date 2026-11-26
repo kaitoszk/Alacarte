@@ -4,8 +4,8 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { formatMonthDayWithWeekday } from '@/lib/date';
 import { type BreadcrumbItem } from '@/types';
 import type { MealPlan, MealPlanDay } from '@/types/meal-plan';
-import { Head, Link, router } from '@inertiajs/vue3';
-import { ChevronLeft, ChevronRight, ImageOff, X } from 'lucide-vue-next';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { ChevronLeft, ChevronRight, ImageOff, ShoppingCart, X } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 const props = defineProps<{
@@ -22,6 +22,15 @@ const weekLabel = computed(
     () => `${formatMonthDayWithWeekday(props.days[0].date)} 〜 ${formatMonthDayWithWeekday(props.days[props.days.length - 1].date)}`,
 );
 const isThisWeek = computed(() => props.days.some((day) => day.date === props.today));
+/** 過去の日の献立は買い物の対象にしないので、今日以降に献立がある週だけボタンを出す（Y-m-d は文字列比較で日付順になる） */
+const hasUpcomingMealPlans = computed(() => props.days.some((day) => day.date >= props.today && day.meal_plans.length > 0));
+
+/** 同じレシピは二重に入らないので、確認モーダルは出さない */
+const cartForm = useForm({ week: '' });
+const addWeekToCart = () => {
+    cartForm.week = props.days[0].date;
+    cartForm.post(route('meal-plans.cart.store'), { preserveScroll: true });
+};
 
 /** 外してもレシピ詳細からすぐ入れ直せるので、確認モーダルは出さない */
 const remove = (mealPlan: MealPlan) => {
@@ -56,6 +65,14 @@ const remove = (mealPlan: MealPlan) => {
             </div>
 
             <p class="text-sm text-muted-foreground">レシピ詳細の「献立に追加」で、作る日を決められます。</p>
+
+            <div v-if="hasUpcomingMealPlans">
+                <Button variant="outline" :disabled="cartForm.processing" @click="addWeekToCart">
+                    <ShoppingCart class="h-4 w-4" />
+                    この週の材料を買い物リストに追加
+                </Button>
+                <p v-if="cartForm.errors.week" class="mt-1 text-sm text-destructive">{{ cartForm.errors.week }}</p>
+            </div>
 
             <ol class="flex flex-col gap-3">
                 <li
