@@ -67,7 +67,11 @@ const remove = (mealPlan: MealPlan) => {
                 >
                     <h2 class="mb-2 flex items-center gap-2 font-medium">
                         {{ formatMonthDayWithWeekday(day.date) }}
-                        <span v-if="day.date === today" class="rounded-full border border-primary-strong px-2 py-0.5 text-xs font-semibold text-primary-strong">今日</span>
+                        <span
+                            v-if="day.date === today"
+                            class="rounded-full border border-primary-strong px-2 py-0.5 text-xs font-semibold text-primary-strong"
+                            >今日</span
+                        >
                     </h2>
 
                     <p v-if="day.meal_plans.length === 0" class="text-sm text-muted-foreground">まだ決まっていません</p>

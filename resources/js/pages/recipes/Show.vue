@@ -63,7 +63,8 @@ const isMealPlanModalOpen = ref(false);
 const addedMealPlanDate = ref<string | null>(null);
 const mealPlanForm = useForm({ date: props.mealPlanDates[0] ?? '' });
 
-const dateLabel = (date: string, index: number): string => (index === 0 ? `${formatMonthDayWithWeekday(date)} 今日` : formatMonthDayWithWeekday(date));
+const dateLabel = (date: string, index: number): string =>
+    index === 0 ? `${formatMonthDayWithWeekday(date)} 今日` : formatMonthDayWithWeekday(date);
 
 const addToMealPlan = () => {
     mealPlanForm.post(route('meal-plans.store', { recipe: recipe.value.id }), {
