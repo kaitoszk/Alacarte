@@ -48,6 +48,7 @@ class CartController extends Controller
     public function store(Request $request, Recipe $recipe, AddRecipeToCartAction $action): RedirectResponse
     {
         $this->authorize('create', Cart::class);
+        $this->authorize('interact', $recipe);
 
         $action->handle($request->user(), $recipe);
 

@@ -21,10 +21,11 @@ class FavoriteController extends Controller
 
         $recipes = Recipe::query()
             ->whereIn('id', $user->favorites()->select('recipe_id'))
+            ->published()
             ->with('user')
             ->withCount(['favorites', 'comments'])
             ->withFavoritedBy($user)
-            ->latest()
+            ->latest('published_at')
             ->paginate(20);
 
         return Inertia::render('favorites/Index', [
@@ -38,6 +39,7 @@ class FavoriteController extends Controller
     public function store(Request $request, Recipe $recipe): RedirectResponse
     {
         $this->authorize('create', Favorite::class);
+        $this->authorize('interact', $recipe);
 
         $request->user()->favorites()->firstOrCreate(['recipe_id' => $recipe->id]);
 

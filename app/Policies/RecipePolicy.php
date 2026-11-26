@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Recipe;
 use App\Models\User;
+use Illuminate\Auth\Access\Response;
 
 class RecipePolicy
 {
@@ -17,10 +18,21 @@ class RecipePolicy
 
     /**
      * Determine whether the user can view the model.
+     * 下書きは投稿者本人だけが見られる。他人には存在自体を知らせないよう 404 にする。
      */
-    public function view(?User $user, Recipe $recipe): bool
+    public function view(?User $user, Recipe $recipe): Response
     {
-        return true;
+        return $recipe->isPublished() || $user?->id === $recipe->user_id
+            ? Response::allow()
+            : Response::denyAsNotFound();
+    }
+
+    /**
+     * お気に入り・買い物リスト追加・コメントができるか。公開前のレシピには本人も含めて付けられない。
+     */
+    public function interact(User $user, Recipe $recipe): Response
+    {
+        return $recipe->isPublished() ? Response::allow() : Response::denyAsNotFound();
     }
 
     /**

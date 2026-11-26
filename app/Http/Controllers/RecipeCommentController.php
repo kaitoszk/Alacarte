@@ -15,6 +15,7 @@ class RecipeCommentController extends Controller
     public function store(StoreRecipeCommentRequest $request, Recipe $recipe): RedirectResponse
     {
         $this->authorize('create', RecipeComment::class);
+        $this->authorize('interact', $recipe);
 
         $recipe->comments()->create([
             'user_id' => $request->user()->id,

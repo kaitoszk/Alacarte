@@ -61,7 +61,7 @@ class HomeController extends Controller
 
         $recipes = $this->baseQuery($request)
             ->whereIn('user_id', $user->followings()->select('users.id'))
-            ->latest()
+            ->latest('published_at')
             ->paginate(self::FOLLOWING_FEED_PER_PAGE)
             ->withQueryString();
 
@@ -69,13 +69,14 @@ class HomeController extends Controller
     }
 
     /**
-     * カード表示に必要なものだけを eager load する（N+1対策）。
+     * 公開済みのレシピに絞り、カード表示に必要なものだけを eager load する（N+1対策）。
      *
      * @return Builder<Recipe>
      */
     private function baseQuery(Request $request): Builder
     {
         return Recipe::query()
+            ->published()
             ->with('user')
             ->withCount(['favorites', 'comments'])
             ->withFavoritedBy($request->user());
