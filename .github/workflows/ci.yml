@@ -65,6 +65,34 @@ jobs:
       - name: Tests
         run: php artisan test
 
+  # 依存パッケージの既知の脆弱性を lock ファイルから検査する（install は不要）
+  # composer: 深刻度に関係なく 1 件でもあれば失敗。abandoned（メンテ終了）は報告のみ
+  # npm: high 以上で失敗（devDependencies も含む）
+  audit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Composer Audit
+        run: composer audit --locked --abandoned=report
+
+      - name: npm Audit
+        run: npm audit --audit-level=high
+
   # ビルド済みアセット + php artisan serve + SQLite のシード済み DB で
   # Playwright のスモークテストを走らせる（サーバーは playwright.config.ts の webServer が起動する）
   e2e:
