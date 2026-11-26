@@ -112,8 +112,11 @@ const cancelHref = computed(() => (props.recipe ? route('recipes.show', { recipe
 
 const submit = () => {
     if (isEdit.value && props.recipe) {
-        // multipart で送るため PUT ではなく POST + _method で送信する
-        form.transform((data) => ({ ...data, _method: 'put' })).post(route('recipes.update', { recipe: props.recipe.id }));
+        // multipart で送るため PUT ではなく POST + _method で送信する。
+        // post_max_size 超過時は PHP が本文（_method を含む）を捨てるため、ヘッダーでも PUT を伝える
+        form.transform((data) => ({ ...data, _method: 'put' })).post(route('recipes.update', { recipe: props.recipe.id }), {
+            headers: { 'X-HTTP-Method-Override': 'PUT' },
+        });
 
         return;
     }
@@ -340,6 +343,8 @@ const submit = () => {
             </Button>
         </section>
 
+        <!-- post_max_size 超過（bootstrap/app.php で PostTooLargeException を変換） -->
+        <InputError class="text-right" :message="errors.upload" />
         <div class="flex justify-end gap-2">
             <Button type="button" variant="ghost" as-child>
                 <Link :href="cancelHref">キャンセル</Link>
