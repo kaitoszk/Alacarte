@@ -51,10 +51,11 @@ erDiagram
         bigint user_id FK
         string title
         text description "nullable"
-        string recipe_image_path
-        int cooking_time "調理時間(分)"
-        int servings "何人前"
+        string recipe_image_path "nullable"
+        int cooking_time "調理時間(分), nullable"
+        int servings "何人前, nullable"
         int view_count "default 0"
+        timestamp published_at "nullable, null なら下書き"
         timestamp deleted_at "nullable"
     }
 
@@ -112,7 +113,7 @@ erDiagram
 | 7 | favorites | レシピお気に入り情報 | ○ |
 | 8 | recipe_comments | レシピコメント情報 | ○ |
 | 9 | recipe_comment_goods | コメントいいね情報 | ○ |
-| 10 | recipe_drafts | 下書きレシピ情報 | △ 後回し |
+| 10 | recipe_drafts | 下書きレシピ情報 | × 作らない（recipes.published_at で表現。後述） |
 | 11 | carts | カート情報（買い物リスト） | ○ |
 | 12 | admin_users | 管理者ユーザー情報 | △ 後回し |
 | 13 | recipe_categories | カテゴリ | × 除外（後述） |
@@ -129,7 +130,7 @@ erDiagram
 8. recipe_comments
 9. recipe_comment_goods
 10. carts
-11. recipe_drafts / admin_users（後回し分）
+11. admin_users（後回し分）
 
 ---
 
@@ -169,10 +170,11 @@ erDiagram
 | user_id | bigint unsigned | | FK → users.id |
 | title | string | | レシピタイトル |
 | description | text | ○ | 料理の説明文 |
-| recipe_image_path | string | | |
-| cooking_time | int | | 調理時間（分） |
-| servings | int | | 何人前 |
-| view_count | int unsigned | | default 0, 詳細閲覧時にインクリメント |
+| recipe_image_path | string | ○ | 下書きでは未設定の場合がある |
+| cooking_time | int | ○ | 調理時間（分）。下書きでは未入力の場合がある |
+| servings | int | ○ | 何人前。下書きでは未入力の場合がある |
+| view_count | int unsigned | | default 0, 詳細閲覧時にインクリメント（下書きは数えない） |
+| published_at | timestamp | ○ | 公開日時。null なら下書き。新着順の一覧はこの降順 |
 | deleted_at | timestamp | ○ | SoftDeletes |
 | created_at / updated_at | timestamp | ○ | |
 
@@ -237,13 +239,16 @@ erDiagram
 制約:
 - `unique(user_id, comment_id)` … 二重いいね防止
 
-## 10. recipe_drafts / 下書きレシピ情報（後回し）
+## 10. recipe_drafts / 下書きレシピ情報（作らない）
 
-recipes とほぼ同一構造（view_count / deleted_at なし）。
+別テーブルは作らず、`recipes.published_at` で表現する（null なら下書き）。
+テーブルを分けると材料・手順・手順画像も下書き用のテーブルが必要になり、公開時にコピーが要るため。
 
-検討事項: recipes に `status`（draft / published）カラムを持たせる案もある。
-テーブルを分けると材料・手順も別テーブルが必要になり複雑化するため、
-実装時にどちらの設計を採るか判断すること。
+- 公開側の一覧・件数（Top の2フィード、プロフィール、お気に入り一覧、レシピ一覧）には `Recipe::published()` スコープを明示的に付ける
+- 下書きの詳細は投稿者本人だけが見られる。他人と未ログインには 404（`RecipePolicy::view`）
+- 下書きにはお気に入り・買い物リスト追加・コメントができない。本人も 404（`RecipePolicy::interact`）
+- 公開済みを下書きに戻す操作は持たない
+- 下書きは完成写真・調理時間・人数が未設定の場合があるため、これらの列は nullable
 
 ## 11. carts / カート情報（買い物リスト）
 
