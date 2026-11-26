@@ -89,7 +89,11 @@ const destroy = () => {
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 p-4">
-            <img :src="recipe.recipe_image_url" :alt="recipe.title" class="aspect-[16/9] max-h-[480px] w-full rounded-2xl object-cover" />
+            <img
+                :src="recipe.recipe_image_url ?? undefined"
+                :alt="recipe.title"
+                class="aspect-[16/9] max-h-[480px] w-full rounded-2xl object-cover"
+            />
 
             <!-- タイトル・チップ・操作 -->
             <div class="flex flex-col gap-4">

@@ -19,7 +19,8 @@ class RecipeResource extends JsonResource
             'id' => $this->id,
             'title' => $this->title,
             'description' => $this->description,
-            'recipe_image_url' => Storage::url($this->recipe_image_path),
+            // 下書きは完成写真が未設定の場合がある
+            'recipe_image_url' => $this->recipe_image_path !== null ? Storage::url($this->recipe_image_path) : null,
             'cooking_time' => $this->cooking_time,
             'servings' => $this->servings,
             'view_count' => $this->view_count,
