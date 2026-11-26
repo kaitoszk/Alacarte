@@ -4,6 +4,12 @@ use App\Models\Recipe;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 
+/** @return array<int, UploadedFile> */
+function fakeStepImages(int $count): array
+{
+    return array_map(fn ($i) => UploadedFile::fake()->create("step{$i}.jpg", 10, 'image/jpeg'), range(1, $count));
+}
+
 /** 上限ちょうどではなく、通常の有効な入力 */
 function validRecipeInput(): array
 {
@@ -28,11 +34,11 @@ function maxRecipeInput(): array
         'servings' => 100,
         'ingredients' => array_fill(0, 50, ['name' => '塩', 'quantity' => '少々']),
         'steps' => [
-            [
-                'description' => str_repeat('あ', 2000),
-                'images' => array_map(fn ($i) => UploadedFile::fake()->create("step{$i}.jpg", 10, 'image/jpeg'), range(1, 3)),
-            ],
-            ...array_fill(0, 49, ['description' => '混ぜる']),
+            ['description' => str_repeat('あ', 2000), 'images' => fakeStepImages(3)],
+            // 手順画像は合計20枚まで（3枚 × 6手順 + 2枚）
+            ...array_map(fn () => ['description' => '混ぜる', 'images' => fakeStepImages(3)], range(1, 5)),
+            ['description' => '混ぜる', 'images' => fakeStepImages(2)],
+            ...array_fill(0, 43, ['description' => '混ぜる']),
         ],
     ];
 }
@@ -48,6 +54,9 @@ dataset('上限超過の入力', [
         'description' => '混ぜる',
         'images' => array_map(fn ($i) => UploadedFile::fake()->create("step{$i}.jpg", 10, 'image/jpeg'), range(1, 4)),
     ]]], 'steps.0.images'],
+    '手順画像の合計枚数' => [fn () => [
+        'steps' => array_map(fn () => ['description' => '混ぜる', 'images' => fakeStepImages(3)], range(1, 7)),
+    ], 'steps'],
 ]);
 
 test('投稿: 上限を超える入力はバリデーションエラーになる', function (Closure $override, string $errorKey) {
@@ -77,7 +86,8 @@ test('投稿: 上限ちょうどの入力は受け付けられる', function () 
     $response->assertSessionHasNoErrors();
     $recipe = Recipe::first();
     expect($recipe->ingredients)->toHaveCount(50)
-        ->and($recipe->steps)->toHaveCount(50);
+        ->and($recipe->steps)->toHaveCount(50)
+        ->and($recipe->steps()->withCount('stepImages')->get()->sum('step_images_count'))->toBe(20);
 });
 
 test('更新: 上限ちょうどの入力は受け付けられる', function () {
@@ -89,4 +99,17 @@ test('更新: 上限ちょうどの入力は受け付けられる', function () 
     $response->assertSessionHasNoErrors();
     expect($recipe->fresh()->cooking_time)->toBe(1440)
         ->and($recipe->fresh()->servings)->toBe(100);
+});
+
+test('手順画像の合計枚数の上限超過は日本語のエラーメッセージになる', function () {
+    config(['app.locale' => 'ja']);
+    app()->setLocale('ja');
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)->post(route('recipes.store'), [
+        ...validRecipeInput(),
+        'steps' => array_map(fn () => ['description' => '混ぜる', 'images' => fakeStepImages(3)], range(1, 7)),
+    ]);
+
+    $response->assertSessionHasErrors(['steps' => '手順の画像は合計20枚までにしてください。']);
 });
