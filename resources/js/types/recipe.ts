@@ -37,9 +37,11 @@ export interface Recipe {
     id: number;
     title: string;
     description: string | null;
-    recipe_image_url: string;
-    cooking_time: number;
-    servings: number;
+    /** 下書きは完成写真が未設定の場合がある */
+    recipe_image_url: string | null;
+    /** 下書きは未入力の場合がある */
+    cooking_time: number | null;
+    servings: number | null;
     view_count: number;
     user?: UserSummary;
     ingredients?: Ingredient[];

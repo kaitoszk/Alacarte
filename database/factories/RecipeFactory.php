@@ -66,6 +66,16 @@ class RecipeFactory extends Factory
             'cooking_time' => fake()->numberBetween(5, 120),
             'servings' => fake()->numberBetween(1, 6),
             'view_count' => fake()->numberBetween(0, 500),
+            // created_at を指定したテストでも並び順が揃うよう、公開日時は作成日時に合わせる
+            'published_at' => fn (array $attributes) => $attributes['created_at'] ?? now(),
         ];
+    }
+
+    /**
+     * 下書き（未公開）のレシピ。
+     */
+    public function draft(): static
+    {
+        return $this->state(fn () => ['published_at' => null]);
     }
 }

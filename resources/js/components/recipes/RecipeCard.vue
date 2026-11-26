@@ -17,7 +17,7 @@ defineProps<{
     >
         <div class="relative overflow-hidden">
             <img
-                :src="recipe.recipe_image_url"
+                :src="recipe.recipe_image_url ?? undefined"
                 :alt="recipe.title"
                 class="aspect-[4/3] w-full object-cover transition duration-300 group-hover:scale-105"
                 loading="lazy"

@@ -19,13 +19,15 @@ class UserController extends Controller
      */
     public function show(Request $request, User $user): Response
     {
-        $user->loadCount(['recipes', 'followers', 'followings']);
+        // 件数・一覧とも下書きは数えない（本人が見ても同じ。下書きは /drafts で見る）
+        $user->loadCount(['recipes' => fn ($recipes) => $recipes->published(), 'followers', 'followings']);
 
         $recipes = $user->recipes()
+            ->published()
             ->with('user')
             ->withCount(['favorites', 'comments'])
             ->withFavoritedBy($request->user())
-            ->latest()
+            ->latest('published_at')
             ->paginate(self::RECIPES_PER_PAGE);
 
         return Inertia::render('users/Show', [

@@ -29,6 +29,7 @@ class RecipeController extends Controller
         $sort = $request->validated('sort') ?? 'new';
 
         $recipes = Recipe::query()
+            ->published()
             ->search($keyword)
             ->cookableWithin($time)
             ->with('user')
@@ -36,7 +37,7 @@ class RecipeController extends Controller
             ->withFavoritedBy($request->user())
             // 人気順はお気に入り数の多い順。同数なら新しい順
             ->when($sort === 'popular', fn ($recipes) => $recipes->orderByDesc('favorites_count'))
-            ->latest()
+            ->latest('published_at')
             ->paginate(20)
             ->withQueryString();
 
@@ -75,7 +76,10 @@ class RecipeController extends Controller
     {
         $this->authorize('view', $recipe);
 
-        $recipe->increment('view_count');
+        // 下書きは本人のプレビューなので閲覧数に数えない
+        if ($recipe->isPublished()) {
+            $recipe->increment('view_count');
+        }
 
         $recipe->load(['user', 'ingredients', 'steps.stepImages'])
             ->loadCount(['favorites', 'comments'])
