@@ -261,7 +261,8 @@ test('レシピ詳細から献立に追加して献立ページに出し、外�
 
     // 直前の実行で同じ日に入れたままでも進めるよう、二重登録エラーなら閉じて続ける
     const duplicate = dialog.getByText('その日にはすでに追加されています。');
-    await expect(dialog.or(page.getByRole('status'))).toBeVisible();
+    // ダイアログは送信中も開いているので、レスポンスの結果（エラーか完了表示）が出るまで待つ
+    await expect(duplicate.or(page.getByRole('status'))).toBeVisible();
     if (await duplicate.isVisible()) {
         await dialog.getByRole('button', { name: 'キャンセル' }).click();
     } else {
@@ -276,6 +277,44 @@ test('レシピ詳細から献立に追加して献立ページに出し、外�
 
     await entry.getByRole('button', { name: /を献立から外す$/ }).click();
     await expect(entry).toHaveCount(0);
+
+    expect(errors).toEqual([]);
+});
+
+test('献立の週の材料をまとめて買い物リストに追加できる', async ({ page }) => {
+    const errors = collectPageErrors(page);
+
+    await login(page);
+    await page.goto('/recipes');
+
+    // シードではタイトルが重複しうるので、リンク先（レシピID）で照合する
+    const href = await recipeCards(page).first().getAttribute('href');
+    await recipeCards(page).first().click();
+
+    // 作る日の初期値は今日。直前の実行で入れたままなら二重登録エラーになるので、閉じて続ける
+    await page.getByRole('button', { name: '献立に追加' }).click();
+    const dialog = page.getByRole('dialog');
+    const date = await dialog.getByLabel('作る日').inputValue();
+    await dialog.getByRole('button', { name: '追加する' }).click();
+    const duplicate = dialog.getByText('その日にはすでに追加されています。');
+    // ダイアログは送信中も開いているので、レスポンスの結果（エラーか完了表示）が出るまで待つ
+    await expect(duplicate.or(page.getByRole('status'))).toBeVisible();
+    if (await duplicate.isVisible()) {
+        await dialog.getByRole('button', { name: 'キャンセル' }).click();
+    }
+
+    await page.goto(`/meal-plan?week=${date}`);
+    await page.getByRole('button', { name: 'この週の材料を買い物リストに追加' }).click();
+    await expect(page.getByRole('status')).toContainText('買い物リストに追加しました');
+
+    // 次の実行で献立の二重登録にならないよう外しておく
+    const entry = page.locator(`li[data-date="${date}"] li`).filter({ has: page.locator(`a[href="${href}"]`) });
+    await entry.getByRole('button', { name: /を献立から外す$/ }).click();
+    await expect(entry).toHaveCount(0);
+
+    await page.goto('/shopping-list');
+    await expect(page.getByRole('heading', { name: '買い物リスト' })).toBeVisible();
+    await expect(page.locator(`section a[href="${href}"]`)).toBeVisible();
 
     expect(errors).toEqual([]);
 });
