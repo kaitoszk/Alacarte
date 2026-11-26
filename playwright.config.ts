@@ -24,6 +24,9 @@ export default defineConfig({
               url: ciBaseURL,
               reuseExistingServer: false,
               timeout: 60_000,
+              // サーバーが落ちたときに理由（Fatal error など）を CI ログで追えるよう、出力をそのまま流す
+              stdout: 'pipe',
+              stderr: 'pipe',
           }
         : undefined,
     projects: [
