@@ -115,6 +115,9 @@ jobs:
           coverage: none
           # シードのプレースホルダー画像を GD で生成する
           extensions: gd
+          # setup-php は JIT を有効にするが、PHP 8.2 の JIT のバグで php artisan serve が segfault することがある
+          # （#28 でレシピ詳細に Carbon の日付計算を足したら再現した）。開発用 Docker と同じく JIT は切る
+          ini-values: opcache.jit=disable, opcache.jit_buffer_size=0
 
       - name: Setup Node
         uses: actions/setup-node@v5
