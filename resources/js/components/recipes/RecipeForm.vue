@@ -16,6 +16,10 @@ const props = defineProps<{
 
 const isEdit = computed(() => props.recipe !== undefined);
 
+// サーバー側（StoreRecipeRequest / UpdateRecipeRequest）の上限と揃える
+const MAX_ITEMS = 50;
+const MAX_STEP_IMAGES = 3;
+
 const form = useForm<RecipeFormData>({
     title: props.recipe?.title ?? '',
     description: props.recipe?.description ?? '',
@@ -101,13 +105,20 @@ const submit = () => {
 
             <div class="grid gap-2">
                 <Label for="title">タイトル</Label>
-                <Input id="title" type="text" v-model="form.title" placeholder="例: 基本の肉じゃが" />
+                <Input id="title" type="text" maxlength="255" v-model="form.title" placeholder="例: 基本の肉じゃが" />
                 <InputError :message="form.errors.title" />
             </div>
 
             <div class="grid gap-2">
                 <Label for="description">説明</Label>
-                <textarea id="description" v-model="form.description" rows="3" :class="textareaClass" placeholder="どんなレシピか一言で" />
+                <textarea
+                    id="description"
+                    v-model="form.description"
+                    rows="3"
+                    maxlength="2000"
+                    :class="textareaClass"
+                    placeholder="どんなレシピか一言で"
+                />
                 <InputError :message="form.errors.description" />
             </div>
 
@@ -131,13 +142,13 @@ const submit = () => {
             <div class="grid gap-4 sm:grid-cols-2">
                 <div class="grid gap-2">
                     <Label for="cooking_time">調理時間（分）</Label>
-                    <Input id="cooking_time" type="number" min="1" v-model="form.cooking_time" placeholder="30" />
+                    <Input id="cooking_time" type="number" min="1" max="1440" v-model="form.cooking_time" placeholder="30" />
                     <InputError :message="form.errors.cooking_time" />
                 </div>
 
                 <div class="grid gap-2">
                     <Label for="servings">何人分</Label>
-                    <Input id="servings" type="number" min="1" v-model="form.servings" placeholder="2" />
+                    <Input id="servings" type="number" min="1" max="100" v-model="form.servings" placeholder="2" />
                     <InputError :message="form.errors.servings" />
                 </div>
             </div>
@@ -151,11 +162,17 @@ const submit = () => {
             <div v-for="(ingredient, index) in form.ingredients" :key="index" class="flex flex-col gap-1">
                 <div class="flex items-start gap-2">
                     <div class="min-w-0 flex-1">
-                        <Input type="text" v-model="ingredient.name" placeholder="じゃがいも" :aria-label="`材料${index + 1}の名前`" />
+                        <Input
+                            type="text"
+                            maxlength="255"
+                            v-model="ingredient.name"
+                            placeholder="じゃがいも"
+                            :aria-label="`材料${index + 1}の名前`"
+                        />
                         <InputError :message="errors[`ingredients.${index}.name`]" />
                     </div>
                     <div class="w-24 sm:w-32">
-                        <Input type="text" v-model="ingredient.quantity" placeholder="3個" :aria-label="`材料${index + 1}の分量`" />
+                        <Input type="text" maxlength="255" v-model="ingredient.quantity" placeholder="3個" :aria-label="`材料${index + 1}の分量`" />
                         <InputError :message="errors[`ingredients.${index}.quantity`]" />
                     </div>
                     <div class="flex shrink-0">
@@ -193,7 +210,7 @@ const submit = () => {
                 </div>
             </div>
 
-            <Button type="button" variant="outline" class="self-start" @click="addIngredient">
+            <Button type="button" variant="outline" class="self-start" :disabled="form.ingredients.length >= MAX_ITEMS" @click="addIngredient">
                 <Plus class="h-4 w-4" />
                 材料を追加
             </Button>
@@ -250,6 +267,7 @@ const submit = () => {
                 <textarea
                     v-model="step.description"
                     rows="2"
+                    maxlength="2000"
                     :class="textareaClass"
                     placeholder="材料を切る"
                     :aria-label="`手順${index + 1}の説明`"
@@ -269,17 +287,25 @@ const submit = () => {
                         </button>
                     </div>
                     <label
-                        class="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-md border-2 border-dashed text-xs text-muted-foreground transition hover:border-primary"
+                        class="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-md border-2 border-dashed text-xs text-muted-foreground transition"
+                        :class="step.images.length >= MAX_STEP_IMAGES ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:border-primary'"
                     >
                         <ImagePlus class="h-5 w-5" />
                         画像
-                        <input type="file" accept="image/*" multiple class="sr-only" @change="(event: Event) => onStepImagesChange(event, index)" />
+                        <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            class="sr-only"
+                            :disabled="step.images.length >= MAX_STEP_IMAGES"
+                            @change="(event: Event) => onStepImagesChange(event, index)"
+                        />
                     </label>
                 </div>
                 <InputError :message="errors[`steps.${index}.images`] ?? errors[`steps.${index}.images.0`]" />
             </div>
 
-            <Button type="button" variant="outline" class="self-start" @click="addStep">
+            <Button type="button" variant="outline" class="self-start" :disabled="form.steps.length >= MAX_ITEMS" @click="addStep">
                 <Plus class="h-4 w-4" />
                 手順を追加
             </Button>
