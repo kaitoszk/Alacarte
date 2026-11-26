@@ -50,7 +50,10 @@ export interface Recipe {
     comments_count?: number;
     /** withFavoritedBy スコープを通したときだけ含まれる */
     is_favorited?: boolean;
+    /** false なら下書き */
+    is_published: boolean;
     created_at: string;
+    updated_at: string;
 }
 
 export interface PaginationLink {

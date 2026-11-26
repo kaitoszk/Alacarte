@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\NormalizesRecipeDraft;
 use App\Models\Recipe;
 use App\Models\StepImage;
 use App\Rules\MaxTotalStepImages;
@@ -12,6 +13,8 @@ use Illuminate\Validation\Validator;
 
 class UpdateRecipeRequest extends FormRequest
 {
+    use NormalizesRecipeDraft;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -21,23 +24,37 @@ class UpdateRecipeRequest extends FormRequest
     }
 
     /**
+     * 公開として保存するか。公開済みのレシピは下書きに戻せないため、常に公開として扱う。
+     */
+    public function publishes(): bool
+    {
+        return $this->recipe()->isPublished() || $this->boolean('publish');
+    }
+
+    /**
      * Get the validation rules that apply to the request.
+     * 下書きはタイトル以外を必須にしない。型・上限のチェックは下書きでも同じにする。
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
+        $required = $this->publishes() ? 'required' : 'nullable';
+        // 完成写真は保存済みなら送り直さなくてよい
+        $imageRequired = $this->publishes() && $this->recipe()->recipe_image_path === null ? 'required' : 'nullable';
+
         return [
+            'publish' => ['boolean'],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:2000'],
-            'recipe_image' => ['nullable', 'image', 'max:5120'],
-            'cooking_time' => ['required', 'integer', 'min:1', 'max:1440'],
-            'servings' => ['required', 'integer', 'min:1', 'max:100'],
-            'ingredients' => ['required', 'array', 'min:1', 'max:50'],
-            'ingredients.*.name' => ['required', 'string', 'max:255'],
-            'ingredients.*.quantity' => ['required', 'string', 'max:255'],
-            'steps' => ['required', 'array', 'min:1', 'max:50', new MaxTotalStepImages],
-            'steps.*.description' => ['required', 'string', 'max:2000'],
+            'recipe_image' => [$imageRequired, 'image', 'max:5120'],
+            'cooking_time' => [$required, 'integer', 'min:1', 'max:1440'],
+            'servings' => [$required, 'integer', 'min:1', 'max:100'],
+            'ingredients' => [$required, 'array', $this->publishes() ? 'min:1' : 'min:0', 'max:50'],
+            'ingredients.*.name' => [$required, 'string', 'max:255'],
+            'ingredients.*.quantity' => [$required, 'string', 'max:255'],
+            'steps' => [$required, 'array', $this->publishes() ? 'min:1' : 'min:0', 'max:50', new MaxTotalStepImages],
+            'steps.*.description' => [$required, 'string', 'max:2000'],
             'steps.*.images' => ['nullable', 'array', 'max:3'],
             'steps.*.images.*' => ['image', 'max:5120'],
             // 残す既存の手順画像。このレシピの画像だけを受け付け、同じ画像を2か所に置くことはできない

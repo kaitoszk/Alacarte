@@ -77,6 +77,17 @@ class Recipe extends Model
     }
 
     /**
+     * 下書き（未公開）のレシピに絞る。
+     *
+     * @param  Builder<Recipe>  $query
+     * @return Builder<Recipe>
+     */
+    public function scopeDraft(Builder $query): Builder
+    {
+        return $query->whereNull('published_at');
+    }
+
+    /**
      * 閲覧者がお気に入り登録済みかを is_favorited として付与する。
      * サブクエリ1本で解決するので一覧でも N+1 にならない。ゲスト（null）は常に false。
      *
