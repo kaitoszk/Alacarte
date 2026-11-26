@@ -37,6 +37,7 @@ return [
     'required' => ':attributeを入力してください。',
     'string' => ':attributeには文字列を入力してください。',
     'unique' => 'この:attributeはすでに使われています。',
+    'uploaded' => ':attributeのアップロードに失敗しました。ファイルサイズが大きすぎる可能性があります。',
 
     'attributes' => [
         'name' => '名前',
