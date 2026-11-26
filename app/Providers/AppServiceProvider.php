@@ -31,5 +31,10 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('writes', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
+
+        // 現在のパスワードを確認する操作（パスワード変更・退会）は総当たり対策で厳しくする
+        RateLimiter::for('password-confirm', function (Request $request) {
+            return Limit::perMinute(6)->by($request->user()?->id ?: $request->ip());
+        });
     }
 }
