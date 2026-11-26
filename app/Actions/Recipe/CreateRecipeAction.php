@@ -21,6 +21,7 @@ class CreateRecipeAction
                 'recipe_image_path' => $data['recipe_image']->store('recipes', 'public'),
                 'cooking_time' => $data['cooking_time'],
                 'servings' => $data['servings'],
+                'published_at' => now(),
             ]);
 
             $recipe->ingredients()->createMany(

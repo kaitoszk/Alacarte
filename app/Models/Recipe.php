@@ -21,7 +21,24 @@ class Recipe extends Model
         'cooking_time',
         'servings',
         'view_count',
+        'published_at',
     ];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'published_at' => 'datetime',
+        ];
+    }
+
+    /** 公開済みか。published_at が null のものは下書き */
+    public function isPublished(): bool
+    {
+        return $this->published_at !== null;
+    }
 
     public function user(): BelongsTo
     {
@@ -46,6 +63,17 @@ class Recipe extends Model
     public function comments(): HasMany
     {
         return $this->hasMany(RecipeComment::class);
+    }
+
+    /**
+     * 公開済みのレシピに絞る（下書きを除く）。公開側の一覧・件数には必ず付ける。
+     *
+     * @param  Builder<Recipe>  $query
+     * @return Builder<Recipe>
+     */
+    public function scopePublished(Builder $query): Builder
+    {
+        return $query->whereNotNull('published_at');
     }
 
     /**
