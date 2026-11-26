@@ -17,6 +17,7 @@ test('新規作成したレシピは公開済みになる', function () {
     Storage::fake('public');
 
     $this->actingAs($this->owner)->post(route('recipes.store'), [
+        'publish' => true,
         'title' => '肉じゃが',
         'recipe_image' => UploadedFile::fake()->create('recipe.jpg', 100, 'image/jpeg'),
         'cooking_time' => 30,

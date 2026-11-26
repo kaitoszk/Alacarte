@@ -3,7 +3,7 @@ import UserInfo from '@/components/UserInfo.vue';
 import { DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import type { User } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { LogOut, Settings, User as UserIcon } from 'lucide-vue-next';
+import { FilePen, LogOut, Settings, User as UserIcon } from 'lucide-vue-next';
 
 interface Props {
     user: User;
@@ -24,6 +24,12 @@ defineProps<Props>();
             <Link class="block w-full" :href="route('users.show', { user: user.handle })" as="button">
                 <UserIcon class="mr-2 h-4 w-4" />
                 マイページ
+            </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem :as-child="true">
+            <Link class="block w-full" :href="route('drafts.index')" as="button">
+                <FilePen class="mr-2 h-4 w-4" />
+                下書き
             </Link>
         </DropdownMenuItem>
         <DropdownMenuItem :as-child="true">

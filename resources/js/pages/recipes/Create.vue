@@ -16,7 +16,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 p-4">
             <h1 class="text-2xl font-semibold">レシピを投稿</h1>
-            <RecipeForm submit-label="投稿する" />
+            <RecipeForm />
         </div>
     </AppLayout>
 </template>

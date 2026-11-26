@@ -38,6 +38,7 @@ test('ログイン済みユーザーはレシピを投稿できる', function ()
     $user = User::factory()->create();
 
     $response = $this->actingAs($user)->post(route('recipes.store'), [
+        'publish' => true,
         'title' => '肉じゃが',
         'description' => '定番の肉じゃがです。',
         'recipe_image' => UploadedFile::fake()->create('recipe.jpg', 100, 'image/jpeg'),
@@ -66,6 +67,7 @@ test('画像がない場合はバリデーションエラーになる', function
     $user = User::factory()->create();
 
     $response = $this->actingAs($user)->post(route('recipes.store'), [
+        'publish' => true,
         'title' => '肉じゃが',
         'cooking_time' => 30,
         'servings' => 2,

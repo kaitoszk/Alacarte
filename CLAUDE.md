@@ -79,6 +79,7 @@ PHP側は必ずコンテナ経由で実行する。Node/Viteはホスト側で�
    - `npm run type-check`
    - `npm run build`
    - 整形: `docker compose exec app ./vendor/bin/pint` / `npm run format`
+   - Docker 起動中なら `npm run test:e2e` も通す（ローカルは http://localhost:8080 の開発DBに対して実行される）
 6. PR: `git push -u origin <ブランチ名>` → `gh pr create`
    - 本文は「概要 / 変更点 / 確認結果（5 のコマンドと結果）」、最終行に `Closes #<番号>`
    - PR を作成したら URL を報告して止まる

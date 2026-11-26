@@ -64,9 +64,9 @@ class RecipeController extends Controller
     {
         $this->authorize('create', Recipe::class);
 
-        $recipe = $action->handle($request->user(), $request->validated());
+        $recipe = $action->handle($request->user(), $request->validated(), $request->publishes());
 
-        return to_route('recipes.show', $recipe);
+        return $this->redirectAfterSave($recipe);
     }
 
     /**
@@ -122,9 +122,9 @@ class RecipeController extends Controller
     {
         $this->authorize('update', $recipe);
 
-        $action->handle($recipe, $request->validated());
+        $action->handle($recipe, $request->validated(), $request->publishes());
 
-        return to_route('recipes.show', $recipe);
+        return $this->redirectAfterSave($recipe);
     }
 
     /**
@@ -134,8 +134,20 @@ class RecipeController extends Controller
     {
         $this->authorize('delete', $recipe);
 
+        $wasPublished = $recipe->isPublished();
+
         $recipe->delete();
 
-        return to_route('recipes.index');
+        return to_route($wasPublished ? 'recipes.index' : 'drafts.index');
+    }
+
+    /**
+     * 下書きは続きを書けるよう編集画面へ、公開したものは詳細へ戻す。
+     */
+    private function redirectAfterSave(Recipe $recipe): RedirectResponse
+    {
+        return $recipe->isPublished()
+            ? to_route('recipes.show', $recipe)
+            : to_route('recipes.edit', $recipe);
     }
 }

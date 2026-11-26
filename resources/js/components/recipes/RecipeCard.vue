@@ -3,7 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/composables/useInitials';
 import type { Recipe } from '@/types/recipe';
 import { Link } from '@inertiajs/vue3';
-import { Clock, Heart, MessageCircle } from 'lucide-vue-next';
+import { Clock, Heart, ImageOff, MessageCircle } from 'lucide-vue-next';
 
 defineProps<{
     recipe: Recipe;
@@ -17,12 +17,19 @@ defineProps<{
     >
         <div class="relative overflow-hidden">
             <img
-                :src="recipe.recipe_image_url ?? undefined"
+                v-if="recipe.recipe_image_url"
+                :src="recipe.recipe_image_url"
                 :alt="recipe.title"
                 class="aspect-[4/3] w-full object-cover transition duration-300 group-hover:scale-105"
                 loading="lazy"
             />
-            <span class="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-background/90 px-2.5 py-1 text-xs font-medium shadow-sm">
+            <div v-else class="flex aspect-[4/3] w-full items-center justify-center bg-muted text-muted-foreground" aria-label="完成写真なし">
+                <ImageOff class="h-8 w-8" />
+            </div>
+            <span
+                v-if="recipe.cooking_time !== null"
+                class="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-background/90 px-2.5 py-1 text-xs font-medium shadow-sm"
+            >
                 <Clock class="h-3.5 w-3.5" />{{ recipe.cooking_time }}分
             </span>
         </div>

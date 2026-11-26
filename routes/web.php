@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CommentGoodController;
+use App\Http\Controllers\DraftController;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\FollowController;
 use App\Http\Controllers\HomeController;
@@ -24,6 +25,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('recipes', RecipeController::class)->except(['index', 'show'])
         ->middlewareFor('store', 'throttle:posts')
         ->middlewareFor(['update', 'destroy'], 'throttle:writes');
+
+    Route::get('drafts', [DraftController::class, 'index'])->name('drafts.index');
 
     Route::get('favorites', [FavoriteController::class, 'index'])->name('favorites.index');
     Route::post('recipes/{recipe}/favorite', [FavoriteController::class, 'store'])->middleware('throttle:writes')->name('favorites.store');

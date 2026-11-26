@@ -14,6 +14,7 @@ function fakeStepImages(int $count): array
 function validRecipeInput(): array
 {
     return [
+        'publish' => true,
         'title' => '肉じゃが',
         'description' => '定番の肉じゃがです。',
         'recipe_image' => UploadedFile::fake()->create('recipe.jpg', 100, 'image/jpeg'),

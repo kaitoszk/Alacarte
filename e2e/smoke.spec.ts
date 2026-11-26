@@ -113,7 +113,8 @@ test('ログインするとレシピ投稿フォームが開く', async ({ page 
 
     await expect(page.getByRole('heading', { name: 'レシピを投稿' })).toBeVisible();
     await expect(page.getByLabel('タイトル')).toBeVisible();
-    await expect(page.getByRole('button', { name: '投稿する' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '下書き保存' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '公開する' })).toBeVisible();
 
     expect(errors).toEqual([]);
 });

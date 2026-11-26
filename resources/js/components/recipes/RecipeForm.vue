@@ -11,10 +11,11 @@ import { computed, onBeforeUnmount, ref } from 'vue';
 const props = defineProps<{
     /** 指定時は編集モードになる */
     recipe?: Recipe;
-    submitLabel: string;
 }>();
 
 const isEdit = computed(() => props.recipe !== undefined);
+/** 公開済みの編集は「更新する」だけ。新規と下書きの編集は「下書き保存」「公開する」を出す */
+const isPublished = computed(() => props.recipe?.is_published === true);
 
 // サーバー側（StoreRecipeRequest / UpdateRecipeRequest）の上限と揃える
 const MAX_ITEMS = 50;
@@ -120,25 +121,32 @@ const stepImageErrors = (index: number): string[] => {
     return [...new Set(messages)];
 };
 
-const cancelHref = computed(() => (props.recipe ? route('recipes.show', { recipe: props.recipe.id }) : route('recipes.index')));
+const cancelHref = computed(() => {
+    if (!props.recipe) {
+        return route('recipes.index');
+    }
 
-const submit = () => {
+    return isPublished.value ? route('recipes.show', { recipe: props.recipe.id }) : route('drafts.index');
+});
+
+/** publish = false なら下書き保存。必須チェックはサーバー側で publish によって切り替わる */
+const submit = (publish: boolean) => {
     if (isEdit.value && props.recipe) {
         // multipart で送るため PUT ではなく POST + _method で送信する。
         // post_max_size 超過時は PHP が本文（_method を含む）を捨てるため、ヘッダーでも PUT を伝える
-        form.transform((data) => ({ ...data, _method: 'put' })).post(route('recipes.update', { recipe: props.recipe.id }), {
+        form.transform((data) => ({ ...data, publish, _method: 'put' })).post(route('recipes.update', { recipe: props.recipe.id }), {
             headers: { 'X-HTTP-Method-Override': 'PUT' },
         });
 
         return;
     }
 
-    form.post(route('recipes.store'));
+    form.transform((data) => ({ ...data, publish })).post(route('recipes.store'));
 };
 </script>
 
 <template>
-    <form @submit.prevent="submit" class="flex flex-col gap-6">
+    <form @submit.prevent="submit(true)" class="flex flex-col gap-6">
         <!-- 基本情報 -->
         <section class="flex flex-col gap-5 rounded-xl border bg-card p-5 sm:p-6">
             <h2 class="text-lg font-semibold">基本情報</h2>
@@ -379,7 +387,11 @@ const submit = () => {
             <Button type="button" variant="ghost" as-child>
                 <Link :href="cancelHref">キャンセル</Link>
             </Button>
-            <Button type="submit" :disabled="form.processing">{{ submitLabel }}</Button>
+            <Button v-if="isPublished" type="submit" :disabled="form.processing">更新する</Button>
+            <template v-else>
+                <Button type="button" variant="outline" :disabled="form.processing" @click="submit(false)">下書き保存</Button>
+                <Button type="submit" :disabled="form.processing">公開する</Button>
+            </template>
         </div>
     </form>
 </template>
