@@ -2,9 +2,13 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Recipe;
+use App\Models\StepImage;
 use App\Rules\MaxTotalStepImages;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class UpdateRecipeRequest extends FormRequest
 {
@@ -36,6 +40,43 @@ class UpdateRecipeRequest extends FormRequest
             'steps.*.description' => ['required', 'string', 'max:2000'],
             'steps.*.images' => ['nullable', 'array', 'max:3'],
             'steps.*.images.*' => ['image', 'max:5120'],
+            // 残す既存の手順画像。このレシピの画像だけを受け付け、同じ画像を2か所に置くことはできない
+            'steps.*.kept_image_ids' => ['nullable', 'array', 'max:3'],
+            'steps.*.kept_image_ids.*' => [
+                'integer',
+                'distinct',
+                Rule::exists(StepImage::class, 'id')->whereIn('step_id', $this->recipe()->steps()->pluck('id')->all()),
+            ],
         ];
+    }
+
+    /**
+     * 1手順あたりの画像の上限（3枚）を、残す既存画像と新しい画像の合計で判定する。
+     *
+     * @return array<int, callable>
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator) {
+                foreach ((array) ($validator->getData()['steps'] ?? []) as $index => $step) {
+                    if (! is_array($step)) {
+                        continue;
+                    }
+
+                    $count = count((array) ($step['images'] ?? [])) + count((array) ($step['kept_image_ids'] ?? []));
+
+                    if ($count > 3) {
+                        $validator->errors()->add("steps.{$index}.images", '手順の画像は1手順3枚までにしてください。');
+                    }
+                }
+            },
+        ];
+    }
+
+    private function recipe(): Recipe
+    {
+        /** @var Recipe */
+        return $this->route('recipe');
     }
 }

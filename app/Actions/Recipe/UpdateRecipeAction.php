@@ -29,8 +29,11 @@ class UpdateRecipeAction
                 'servings' => $data['servings'],
             ]);
 
+            // 残す画像はファイルをそのまま使い、新しい手順に付け直す。残さない画像だけファイルを消す
             $recipe->load('steps.stepImages');
-            $recipe->steps->pluck('stepImages')->flatten()->each(
+            $currentImages = $recipe->steps->flatMap(fn ($step) => $step->stepImages)->keyBy('id');
+            $keptIds = collect($data['steps'])->flatMap(fn (array $step) => $step['kept_image_ids'] ?? [])->all();
+            $currentImages->except($keptIds)->each(
                 fn ($stepImage) => Storage::disk('public')->delete($stepImage->step_image_path)
             );
 
@@ -51,10 +54,13 @@ class UpdateRecipeAction
                     'description' => $step['description'],
                 ]);
 
+                $keptPaths = collect($step['kept_image_ids'] ?? [])
+                    ->map(fn ($id) => $currentImages[$id]->step_image_path);
+                $newPaths = collect($step['images'] ?? [])
+                    ->map(fn ($image) => $image->store('steps', 'public'));
+
                 $createdStep->stepImages()->createMany(
-                    collect($step['images'] ?? [])->map(fn ($image) => [
-                        'step_image_path' => $image->store('steps', 'public'),
-                    ])->all()
+                    $keptPaths->concat($newPaths)->map(fn (string $path) => ['step_image_path' => $path])->all()
                 );
             }
 
