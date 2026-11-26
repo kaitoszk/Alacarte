@@ -54,6 +54,28 @@ test('レート制限はユーザーごとに数える', function () {
         ->assertRedirect();
 });
 
+test('現在のパスワードを確認する操作は1分に6回までで、7回目は429になる', function () {
+    $user = User::factory()->create();
+
+    for ($i = 0; $i < 6; $i++) {
+        $this->actingAs($user)
+            ->put(route('password.update'), [
+                'current_password' => "wrong-password-{$i}",
+                'password' => 'new-password',
+                'password_confirmation' => 'new-password',
+            ])
+            ->assertSessionHasErrors('current_password');
+    }
+
+    $this->actingAs($user)
+        ->put(route('password.update'), [
+            'current_password' => 'password',
+            'password' => 'new-password',
+            'password_confirmation' => 'new-password',
+        ])
+        ->assertStatus(429);
+});
+
 test('書き込み系ルートにはすべてレート制限が付いている', function (string $name, string $limiter) {
     $middleware = Route::getRoutes()->getByName($name)->gatherMiddleware();
 
@@ -74,4 +96,7 @@ test('書き込み系ルートにはすべてレート制限が付いている',
     ['comments.destroy', 'writes'],
     ['comment-goods.store', 'writes'],
     ['comment-goods.destroy', 'writes'],
+    ['profile.update', 'writes'],
+    ['profile.destroy', 'password-confirm'],
+    ['password.update', 'password-confirm'],
 ]);
