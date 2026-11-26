@@ -3,7 +3,7 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { Recipe, RecipeFormData } from '@/types/recipe';
+import type { Recipe, RecipeFormData, StepInput } from '@/types/recipe';
 import { Link, useForm } from '@inertiajs/vue3';
 import { ArrowDown, ArrowUp, ImagePlus, Plus, Trash2, X } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, ref } from 'vue';
@@ -31,7 +31,11 @@ const form = useForm<RecipeFormData>({
     ingredients: props.recipe?.ingredients?.map((ingredient) => ({ name: ingredient.name, quantity: ingredient.quantity })) ?? [
         { name: '', quantity: '' },
     ],
-    steps: props.recipe?.steps?.map((step) => ({ description: step.description, images: [] })) ?? [{ description: '', images: [] }],
+    steps: props.recipe?.steps?.map((step) => ({
+        description: step.description,
+        images: [],
+        kept_image_ids: step.images?.map((image) => image.id) ?? [],
+    })) ?? [{ description: '', images: [], kept_image_ids: [] }],
 });
 
 // ingredients.0.name のようなネストしたキーは useForm の errors 型に含まれないため、
@@ -55,7 +59,7 @@ const move = <T,>(items: T[], index: number, direction: -1 | 1) => {
 const addIngredient = () => form.ingredients.push({ name: '', quantity: '' });
 const removeIngredient = (index: number) => form.ingredients.splice(index, 1);
 
-const addStep = () => form.steps.push({ description: '', images: [] });
+const addStep = () => form.steps.push({ description: '', images: [], kept_image_ids: [] });
 const removeStep = (index: number) => form.steps.splice(index, 1);
 
 // 選んだ画像のプレビュー。File ごとに object URL を作って使い回し、画面を離れるときに解放する
@@ -76,9 +80,16 @@ const onRecipeImageChange = (event: Event) => {
     form.recipe_image = input.files?.[0] ?? null;
 };
 
-const totalStepImages = computed(() => form.steps.reduce((sum, step) => sum + step.images.length, 0));
+// 編集時の既存画像の URL（id から引く）。手順を並べ替えても画像は kept_image_ids と一緒に動く
+const existingImageUrls = new Map(
+    (props.recipe?.steps ?? []).flatMap((step) => (step.images ?? []).map((image) => [image.id, image.step_image_url])),
+);
+
+/** 手順の画像の枚数（残す既存画像 + 新しい画像） */
+const stepImageCount = (step: StepInput) => step.kept_image_ids.length + step.images.length;
+const totalStepImages = computed(() => form.steps.reduce((sum, step) => sum + stepImageCount(step), 0));
 const remainingStepImages = computed(() => MAX_TOTAL_STEP_IMAGES - totalStepImages.value);
-const canAddStepImage = (index: number) => form.steps[index].images.length < MAX_STEP_IMAGES && remainingStepImages.value > 0;
+const canAddStepImage = (index: number) => stepImageCount(form.steps[index]) < MAX_STEP_IMAGES && remainingStepImages.value > 0;
 
 // 上限を超えて選ばれた画像を追加しなかったときの案内
 const stepImageNotice = ref('');
@@ -86,7 +97,7 @@ const stepImageNotice = ref('');
 const onStepImagesChange = (event: Event, index: number) => {
     const input = event.target as HTMLInputElement;
     const selected = Array.from(input.files ?? []);
-    const acceptable = Math.min(MAX_STEP_IMAGES - form.steps[index].images.length, remainingStepImages.value);
+    const acceptable = Math.min(MAX_STEP_IMAGES - stepImageCount(form.steps[index]), remainingStepImages.value);
     form.steps[index].images = [...form.steps[index].images, ...selected.slice(0, acceptable)];
     stepImageNotice.value =
         selected.length > acceptable
@@ -97,6 +108,7 @@ const onStepImagesChange = (event: Event, index: number) => {
 };
 
 const removeStepImage = (stepIndex: number, imageIndex: number) => form.steps[stepIndex].images.splice(imageIndex, 1);
+const removeKeptImage = (stepIndex: number, imageIndex: number) => form.steps[stepIndex].kept_image_ids.splice(imageIndex, 1);
 
 /** steps.N.images と steps.N.images.M（何枚目でも）のエラーを、重複を除いてまとめる */
 const stepImageErrors = (index: number): string[] => {
@@ -248,7 +260,6 @@ const submit = () => {
         <section class="flex flex-col gap-4 rounded-xl border bg-card p-5 sm:p-6">
             <h2 class="text-lg font-semibold">作り方</h2>
             <InputError :message="form.errors.steps" />
-            <p v-if="recipe" class="text-xs text-muted-foreground">画像を選び直さない手順は、更新時に画像なしになります。</p>
             <p class="text-xs text-muted-foreground">
                 手順の画像: あと {{ remainingStepImages }} 枚（1手順{{ MAX_STEP_IMAGES }}枚・合計{{ MAX_TOTAL_STEP_IMAGES }}枚まで）
             </p>
@@ -307,12 +318,31 @@ const submit = () => {
                 <InputError :message="errors[`steps.${index}.description`]" />
 
                 <div class="flex flex-wrap gap-2">
-                    <div v-for="(image, imageIndex) in step.images" :key="imageIndex" class="relative">
-                        <img :src="previewUrl(image)" :alt="`手順${index + 1}の画像${imageIndex + 1}`" class="h-20 w-20 rounded-md object-cover" />
+                    <div v-for="(imageId, imageIndex) in step.kept_image_ids" :key="`kept-${imageId}`" class="relative">
+                        <img
+                            :src="existingImageUrls.get(imageId)"
+                            :alt="`手順${index + 1}の画像${imageIndex + 1}`"
+                            class="h-20 w-20 rounded-md object-cover"
+                        />
                         <button
                             type="button"
                             class="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-foreground text-background shadow"
                             :aria-label="`手順${index + 1}の画像${imageIndex + 1}を外す`"
+                            @click="removeKeptImage(index, imageIndex)"
+                        >
+                            <X class="h-3.5 w-3.5" />
+                        </button>
+                    </div>
+                    <div v-for="(image, imageIndex) in step.images" :key="imageIndex" class="relative">
+                        <img
+                            :src="previewUrl(image)"
+                            :alt="`手順${index + 1}の画像${step.kept_image_ids.length + imageIndex + 1}`"
+                            class="h-20 w-20 rounded-md object-cover"
+                        />
+                        <button
+                            type="button"
+                            class="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-foreground text-background shadow"
+                            :aria-label="`手順${index + 1}の画像${step.kept_image_ids.length + imageIndex + 1}を外す`"
                             @click="removeStepImage(index, imageIndex)"
                         >
                             <X class="h-3.5 w-3.5" />

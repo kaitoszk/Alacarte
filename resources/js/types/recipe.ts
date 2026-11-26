@@ -111,11 +111,12 @@ export interface IngredientInput {
     quantity: string;
 }
 
-/** フォーム入力中の手順。images は新規アップロードするファイル */
+/** フォーム入力中の手順。images は新規アップロードするファイル、kept_image_ids は残す既存画像（編集時） */
 export interface StepInput {
     [key: string]: FormDataConvertible;
     description: string;
     images: File[];
+    kept_image_ids: number[];
 }
 
 export interface RecipeFormData {

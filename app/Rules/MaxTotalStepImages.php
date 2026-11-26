@@ -6,7 +6,7 @@ use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 
 /**
- * 全手順の画像の合計枚数を制限する。
+ * 全手順の画像の合計枚数を制限する。編集時は残す既存画像（kept_image_ids）も合計に含める。
  * php.ini の max_file_uploads を超えたファイルは黙って捨てられるため、その手前で弾く。
  * フロント（RecipeForm.vue の MAX_TOTAL_STEP_IMAGES）と値を揃えること。
  */
@@ -21,7 +21,9 @@ class MaxTotalStepImages implements ValidationRule
         }
 
         $total = collect($value)->sum(
-            fn ($step) => is_array($step) && is_array($step['images'] ?? null) ? count($step['images']) : 0
+            fn ($step) => is_array($step)
+                ? count((array) ($step['images'] ?? [])) + count((array) ($step['kept_image_ids'] ?? []))
+                : 0
         );
 
         if ($total > self::MAX) {
