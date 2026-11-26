@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import type { Recipe, RecipeFormData } from '@/types/recipe';
 import { Link, useForm } from '@inertiajs/vue3';
 import { ArrowDown, ArrowUp, ImagePlus, Plus, Trash2, X } from 'lucide-vue-next';
-import { computed, onBeforeUnmount } from 'vue';
+import { computed, onBeforeUnmount, ref } from 'vue';
 
 const props = defineProps<{
     /** 指定時は編集モードになる */
@@ -19,6 +19,8 @@ const isEdit = computed(() => props.recipe !== undefined);
 // サーバー側（StoreRecipeRequest / UpdateRecipeRequest）の上限と揃える
 const MAX_ITEMS = 50;
 const MAX_STEP_IMAGES = 3;
+// php.ini の max_file_uploads を超えたファイルは黙って捨てられるため、合計枚数も制限する（MaxTotalStepImages）
+const MAX_TOTAL_STEP_IMAGES = 20;
 
 const form = useForm<RecipeFormData>({
     title: props.recipe?.title ?? '',
@@ -74,14 +76,37 @@ const onRecipeImageChange = (event: Event) => {
     form.recipe_image = input.files?.[0] ?? null;
 };
 
+const totalStepImages = computed(() => form.steps.reduce((sum, step) => sum + step.images.length, 0));
+const remainingStepImages = computed(() => MAX_TOTAL_STEP_IMAGES - totalStepImages.value);
+const canAddStepImage = (index: number) => form.steps[index].images.length < MAX_STEP_IMAGES && remainingStepImages.value > 0;
+
+// 上限を超えて選ばれた画像を追加しなかったときの案内
+const stepImageNotice = ref('');
+
 const onStepImagesChange = (event: Event, index: number) => {
     const input = event.target as HTMLInputElement;
-    form.steps[index].images = [...form.steps[index].images, ...Array.from(input.files ?? [])];
+    const selected = Array.from(input.files ?? []);
+    const acceptable = Math.min(MAX_STEP_IMAGES - form.steps[index].images.length, remainingStepImages.value);
+    form.steps[index].images = [...form.steps[index].images, ...selected.slice(0, acceptable)];
+    stepImageNotice.value =
+        selected.length > acceptable
+            ? `画像は1手順${MAX_STEP_IMAGES}枚・合計${MAX_TOTAL_STEP_IMAGES}枚までのため、${selected.length - acceptable}枚は追加しませんでした。`
+            : '';
     // 同じファイルを選び直せるよう、選択状態はリセットして一覧は state 側で表示する
     input.value = '';
 };
 
 const removeStepImage = (stepIndex: number, imageIndex: number) => form.steps[stepIndex].images.splice(imageIndex, 1);
+
+/** steps.N.images と steps.N.images.M（何枚目でも）のエラーを、重複を除いてまとめる */
+const stepImageErrors = (index: number): string[] => {
+    const prefix = `steps.${index}.images`;
+    const messages = Object.entries(errors.value)
+        .filter(([key, message]) => message !== undefined && (key === prefix || key.startsWith(`${prefix}.`)))
+        .map(([, message]) => message as string);
+
+    return [...new Set(messages)];
+};
 
 const cancelHref = computed(() => (props.recipe ? route('recipes.show', { recipe: props.recipe.id }) : route('recipes.index')));
 
@@ -221,6 +246,10 @@ const submit = () => {
             <h2 class="text-lg font-semibold">作り方</h2>
             <InputError :message="form.errors.steps" />
             <p v-if="recipe" class="text-xs text-muted-foreground">画像を選び直さない手順は、更新時に画像なしになります。</p>
+            <p class="text-xs text-muted-foreground">
+                手順の画像: あと {{ remainingStepImages }} 枚（1手順{{ MAX_STEP_IMAGES }}枚・合計{{ MAX_TOTAL_STEP_IMAGES }}枚まで）
+            </p>
+            <InputError :message="stepImageNotice" />
 
             <div v-for="(step, index) in form.steps" :key="index" class="flex flex-col gap-3 rounded-lg border p-4">
                 <div class="flex items-center justify-between">
@@ -288,7 +317,7 @@ const submit = () => {
                     </div>
                     <label
                         class="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-md border-2 border-dashed text-xs text-muted-foreground transition"
-                        :class="step.images.length >= MAX_STEP_IMAGES ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:border-primary'"
+                        :class="canAddStepImage(index) ? 'cursor-pointer hover:border-primary' : 'cursor-not-allowed opacity-50'"
                     >
                         <ImagePlus class="h-5 w-5" />
                         画像
@@ -297,12 +326,12 @@ const submit = () => {
                             accept="image/*"
                             multiple
                             class="sr-only"
-                            :disabled="step.images.length >= MAX_STEP_IMAGES"
+                            :disabled="!canAddStepImage(index)"
                             @change="(event: Event) => onStepImagesChange(event, index)"
                         />
                     </label>
                 </div>
-                <InputError :message="errors[`steps.${index}.images`] ?? errors[`steps.${index}.images.0`]" />
+                <InputError v-for="message in stepImageErrors(index)" :key="message" :message="message" />
             </div>
 
             <Button type="button" variant="outline" class="self-start" :disabled="form.steps.length >= MAX_ITEMS" @click="addStep">
