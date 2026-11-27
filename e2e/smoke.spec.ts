@@ -318,3 +318,17 @@ test('献立の週の材料をまとめて買い物リストに追加できる',
 
     expect(errors).toEqual([]);
 });
+
+test('ゲストでも今日のおまかせでレシピ詳細へ遷移する', async ({ page }) => {
+    const errors = collectPageErrors(page);
+
+    await page.goto('/');
+    await page.getByRole('button', { name: '60分以内' }).click();
+    await page.getByRole('button', { name: '今日のおまかせ' }).click();
+
+    // 開発DBの中身に依存しないよう、遷移先はレシピ詳細であることだけを確かめる
+    await page.waitForURL(/\/recipes\/\d+$/);
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+
+    expect(errors).toEqual([]);
+});

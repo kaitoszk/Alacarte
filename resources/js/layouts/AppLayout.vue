@@ -14,6 +14,7 @@ withDefaults(defineProps<Props>(), {
 
 const page = usePage<SharedData>();
 const flashSuccess = computed(() => page.props.flash.success);
+const flashInfo = computed(() => page.props.flash.info);
 </script>
 
 <template>
@@ -24,6 +25,9 @@ const flashSuccess = computed(() => page.props.flash.success);
             class="mx-4 mt-4 max-w-2xl rounded-lg border border-primary bg-primary/10 px-4 py-2 text-sm text-primary-strong"
         >
             {{ flashSuccess }}
+        </div>
+        <div v-if="flashInfo" role="status" class="mx-4 mt-4 max-w-2xl rounded-lg border bg-muted px-4 py-2 text-sm text-muted-foreground">
+            {{ flashInfo }}
         </div>
         <slot />
     </AppLayout>
