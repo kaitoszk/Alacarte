@@ -332,3 +332,34 @@ test('ゲストでも今日のおまかせでレシピ詳細へ遷移する', as
 
     expect(errors).toEqual([]);
 });
+
+test('ゲストでもレシピ一覧から冷蔵庫の材料でレシピを探せる', async ({ page }) => {
+    const errors = collectPageErrors(page);
+
+    await page.goto('/recipes');
+    await page.getByRole('link', { name: '冷蔵庫の材料から探す' }).click();
+    await page.waitForURL(/\/recipes\/by-ingredients$/);
+    await expect(page.getByText('材料を入れてください')).toBeVisible();
+
+    const input = page.getByLabel('材料を追加');
+    await input.fill('玉ねぎ');
+    await input.press('Enter');
+
+    await expect(page.getByRole('button', { name: '玉ねぎを外す' })).toBeVisible();
+    await page.waitForURL(/ingredients/);
+    // 開発DBの中身に依存しないよう、結果か「見つかりません」のどちらかが出ることだけを確かめる
+    await expect(page.getByText(/\d+件|その材料を使うレシピが見つかりません/).first()).toBeVisible();
+
+    // 5つ入れると入力できなくなる
+    for (const name of ['にんじん', '卵', '豆腐', '塩']) {
+        await input.fill(name);
+        await input.press('Enter');
+        await expect(page.getByRole('button', { name: `${name}を外す` })).toBeVisible();
+    }
+    await expect(input).toBeDisabled();
+
+    await page.getByRole('button', { name: '玉ねぎを外す' }).click();
+    await expect(input).toBeEnabled();
+
+    expect(errors).toEqual([]);
+});
