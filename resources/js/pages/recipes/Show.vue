@@ -2,6 +2,7 @@
 import ConfirmModal from '@/components/ConfirmModal.vue';
 import InputError from '@/components/InputError.vue';
 import CommentSection from '@/components/recipes/CommentSection.vue';
+import CookingMode from '@/components/recipes/CookingMode.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { getInitials } from '@/composables/useInitials';
@@ -10,7 +11,7 @@ import { formatMonthDayWithWeekday } from '@/lib/date';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import type { Recipe, RecipeComment } from '@/types/recipe';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { CalendarPlus, Clock, Eye, Heart, ImageOff, ShoppingCart, UserCheck, UserPlus, Users } from 'lucide-vue-next';
+import { CalendarPlus, ChefHat, Clock, Eye, Heart, ImageOff, ShoppingCart, UserCheck, UserPlus, Users } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{
@@ -60,6 +61,7 @@ const addToCart = () => {
 
 /** 献立に追加する。日付を選ぶモーダルを出し、追加できたら追加した日を画面に残す */
 const isMealPlanModalOpen = ref(false);
+const isCookingModeOpen = ref(false);
 const addedMealPlanDate = ref<string | null>(null);
 const mealPlanForm = useForm({ date: props.mealPlanDates[0] ?? '' });
 
@@ -273,7 +275,13 @@ const destroy = () => {
                 </section>
 
                 <section v-if="recipe.steps?.length" class="flex flex-col gap-6">
-                    <h2 class="text-lg font-semibold">作り方</h2>
+                    <div class="flex items-center justify-between gap-4">
+                        <h2 class="text-lg font-semibold">作り方</h2>
+                        <Button type="button" variant="outline" size="sm" @click="isCookingModeOpen = true">
+                            <ChefHat class="h-4 w-4" />
+                            調理モード
+                        </Button>
+                    </div>
                     <ol class="flex flex-col gap-6">
                         <li v-for="step in recipe.steps" :key="step.id" class="flex gap-4">
                             <span
@@ -296,6 +304,7 @@ const destroy = () => {
                             </div>
                         </li>
                     </ol>
+                    <CookingMode v-model:open="isCookingModeOpen" :title="recipe.title" :steps="recipe.steps" />
                 </section>
             </div>
 
