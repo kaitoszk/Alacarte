@@ -392,3 +392,53 @@ test('ゲストでもレシピ詳細から調理モードで手順を送り、�
 
     expect(errors).toEqual([]);
 });
+
+test('レシピ詳細で人数を変えると材料の分量が換算される', async ({ page }) => {
+    const errors = collectPageErrors(page);
+    // 開発DBに対して実行するので、分量が決まったレシピを下書きで作り、最後に消す
+    const title = `人数換算e2e ${Date.now()}`;
+
+    await login(page);
+    await page.goto('/recipes/create');
+    await page.getByLabel('タイトル').fill(title);
+    await page.getByLabel('何人分').fill('2');
+
+    const quantities = ['大さじ1', '1/2個', '少々'];
+    for (const [index, quantity] of quantities.entries()) {
+        if (index > 0) {
+            await page.getByRole('button', { name: '材料を追加' }).click();
+        }
+        await page.getByLabel(`材料${index + 1}の名前`).fill(`材料${index + 1}`);
+        await page.getByLabel(`材料${index + 1}の分量`).fill(quantity);
+    }
+
+    await page.getByRole('button', { name: '下書き保存' }).click();
+    // 下書き保存後は編集画面に戻る
+    await page.waitForURL(/\/recipes\/\d+\/edit$/);
+    const recipeId = page.url().match(/\/recipes\/(\d+)\/edit$/)?.[1];
+    await page.goto(`/recipes/${recipeId}`);
+
+    const ingredients = page.locator('section:has(h2:has-text("材料")) ul > li');
+    await expect(page.getByRole('heading', { name: '材料（2人分）' })).toBeVisible();
+    await expect(ingredients.nth(0)).toContainText('大さじ1');
+
+    await page.getByRole('button', { name: '人数を増やす' }).click();
+    await page.getByRole('button', { name: '人数を増やす' }).click();
+
+    await expect(page.getByRole('heading', { name: '材料（4人分）' })).toBeVisible();
+    await expect(ingredients.nth(0)).toContainText('大さじ2');
+    await expect(ingredients.nth(1)).toContainText('1個');
+    await expect(ingredients.nth(2)).toContainText('少々');
+
+    await page.getByRole('button', { name: '元に戻す' }).click();
+    await expect(page.getByRole('heading', { name: '材料（2人分）' })).toBeVisible();
+    await expect(ingredients.nth(1)).toContainText('1/2個');
+
+    await page.goto('/drafts');
+    await page.getByRole('listitem').filter({ hasText: title }).getByRole('button', { name: '削除' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: '削除する' }).click();
+    await expect(page.getByRole('dialog')).toBeHidden();
+    await expect(page.getByRole('link', { name: title })).toBeHidden();
+
+    expect(errors).toEqual([]);
+});

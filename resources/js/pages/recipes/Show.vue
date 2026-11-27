@@ -8,10 +8,11 @@ import { Button } from '@/components/ui/button';
 import { getInitials } from '@/composables/useInitials';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatMonthDayWithWeekday } from '@/lib/date';
+import { scaleQuantity } from '@/lib/quantity';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import type { Recipe, RecipeComment } from '@/types/recipe';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { CalendarPlus, ChefHat, Clock, Eye, Heart, ImageOff, ShoppingCart, UserCheck, UserPlus, Users } from 'lucide-vue-next';
+import { CalendarPlus, ChefHat, Clock, Eye, Heart, ImageOff, Minus, Plus, ShoppingCart, UserCheck, UserPlus, Users } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{
@@ -30,6 +31,27 @@ const isLoggedIn = computed(() => page.props.auth.user !== null);
 const isOwner = computed(() => page.props.auth?.user?.id === recipe.value.user?.id);
 /** 下書きは本人のプレビュー。お気に入り・買い物リスト・コメント・フォローはできないので出さない */
 const isDraft = computed(() => !recipe.value.is_published);
+
+/** 作りたい人数。材料の分量を元の人数との比で換算して見せる（表示上の目安で、DB の値は変えない） */
+const MIN_SERVINGS = 1;
+const MAX_SERVINGS = 20;
+const selectedServings = ref(recipe.value.servings);
+const scaledIngredients = computed(() => {
+    const original = recipe.value.servings;
+    const selected = selectedServings.value;
+    const ratio = original === null || selected === null ? 1 : selected / original;
+
+    return (recipe.value.ingredients ?? []).map((ingredient) => ({
+        ...ingredient,
+        quantity: scaleQuantity(ingredient.quantity, ratio),
+    }));
+});
+const changeServings = (delta: number) => {
+    if (selectedServings.value === null) {
+        return;
+    }
+    selectedServings.value = Math.min(MAX_SERVINGS, Math.max(MIN_SERVINGS, selectedServings.value + delta));
+};
 
 /** お気に入りのトグル。押した位置を保ったまま再描画する */
 const toggleFavorite = () => {
@@ -248,13 +270,51 @@ const destroy = () => {
             <!-- 材料（PC では左に固定）と作り方 -->
             <div class="grid gap-8 lg:grid-cols-[320px_1fr]">
                 <section v-if="recipe.ingredients?.length" class="flex flex-col gap-3 self-start rounded-xl border bg-card p-5 lg:sticky lg:top-28">
-                    <h2 class="text-lg font-semibold">
-                        材料<span v-if="recipe.servings !== null" class="ml-1 text-sm font-normal text-muted-foreground"
-                            >（{{ recipe.servings }}人分）</span
-                        >
-                    </h2>
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <h2 class="text-lg font-semibold">
+                            材料<span v-if="selectedServings !== null" class="ml-1 text-sm font-normal text-muted-foreground"
+                                >（{{ selectedServings }}人分）</span
+                            >
+                        </h2>
+                        <div v-if="selectedServings !== null" class="flex items-center gap-1">
+                            <Button
+                                v-if="selectedServings !== recipe.servings"
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                class="text-xs text-muted-foreground"
+                                @click="selectedServings = recipe.servings"
+                                >元に戻す</Button
+                            >
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                class="h-8 w-8"
+                                aria-label="人数を減らす"
+                                :disabled="selectedServings <= MIN_SERVINGS"
+                                @click="changeServings(-1)"
+                            >
+                                <Minus class="h-4 w-4" />
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                class="h-8 w-8"
+                                aria-label="人数を増やす"
+                                :disabled="selectedServings >= MAX_SERVINGS"
+                                @click="changeServings(1)"
+                            >
+                                <Plus class="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                    <p v-if="selectedServings !== null && selectedServings !== recipe.servings" class="text-xs text-muted-foreground">
+                        {{ recipe.servings }}人分の分量から換算した目安です
+                    </p>
                     <ul class="divide-y">
-                        <li v-for="ingredient in recipe.ingredients" :key="ingredient.id" class="flex justify-between gap-4 py-2.5 text-sm">
+                        <li v-for="ingredient in scaledIngredients" :key="ingredient.id" class="flex justify-between gap-4 py-2.5 text-sm">
                             <span>{{ ingredient.name }}</span>
                             <span class="shrink-0 text-muted-foreground">{{ ingredient.quantity }}</span>
                         </li>
