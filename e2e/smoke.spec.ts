@@ -363,3 +363,32 @@ test('ゲストでもレシピ一覧から冷蔵庫の材料でレシピを探�
 
     expect(errors).toEqual([]);
 });
+
+test('ゲストでもレシピ詳細から調理モードで手順を送り、閉じると詳細に戻る', async ({ page }) => {
+    const errors = collectPageErrors(page);
+
+    await page.goto('/recipes');
+    await recipeCards(page).first().click();
+    await page.waitForURL(/\/recipes\/\d+$/);
+
+    // 開発DBの中身に依存しないよう、手順数は詳細ページの表示から数える
+    const stepCount = await page.locator('section:has(h2:text-is("作り方")) ol > li').count();
+
+    await page.getByRole('button', { name: '調理モード' }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByText(`手順 1 / ${stepCount}`)).toBeVisible();
+    await expect(dialog.getByRole('button', { name: '前へ' })).toBeDisabled();
+
+    if (stepCount >= 2) {
+        await dialog.getByRole('button', { name: '次へ' }).click();
+        await expect(dialog.getByText(`手順 2 / ${stepCount}`)).toBeVisible();
+        await dialog.getByRole('button', { name: '前へ' }).click();
+        await expect(dialog.getByText(`手順 1 / ${stepCount}`)).toBeVisible();
+    }
+
+    await dialog.getByRole('button', { name: 'Close' }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page.getByRole('heading', { name: '作り方' })).toBeVisible();
+
+    expect(errors).toEqual([]);
+});
