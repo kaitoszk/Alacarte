@@ -32,6 +32,29 @@ const collectPageErrors = (page: Page): string[] => {
 /** 一覧に並ぶレシピカードのリンク（「レシピを投稿」ボタンなどを拾わないよう画像付きに限定する） */
 const recipeCards = (page: Page) => page.locator('a[href*="/recipes/"]:has(img)');
 
+/** レシピ詳細の材料名の一覧 */
+const ingredientNames = (page: Page) => page.locator('section:has(> div > h2:has-text("材料")) ul > li > span:first-child');
+
+/** 買い物リストの「レシピごと」表示で、そのレシピの行を全部消す（前回の実行の残りを片付けて、何度でも同じ状態から始めるため） */
+const removeRecipeFromCart = async (page: Page, href: string) => {
+    await page.goto('/shopping-list');
+    // count() は待たないので、描画が終わってから数える
+    await expect(page.getByRole('heading', { name: '買い物リスト' })).toBeVisible();
+    const tab = page.getByRole('tab', { name: 'レシピごと' });
+    if ((await tab.count()) === 0) {
+        return; // 空のリストには切替が出ない
+    }
+    await tab.click();
+    const deleteButtons = page
+        .locator('section')
+        .filter({ has: page.locator(`a[href="${href}"]`) })
+        .getByRole('button', { name: /を削除$/ });
+    for (let remaining = await deleteButtons.count(); remaining > 0; remaining--) {
+        await deleteButtons.first().click();
+        await expect(deleteButtons).toHaveCount(remaining - 1);
+    }
+};
+
 const login = async (page: Page) => {
     await page.goto('/login');
     await page.getByLabel('メールアドレス').fill('test@example.com');
@@ -314,6 +337,7 @@ test('献立の週の材料をまとめて買い物リストに追加できる',
 
     await page.goto('/shopping-list');
     await expect(page.getByRole('heading', { name: '買い物リスト' })).toBeVisible();
+    await page.getByRole('tab', { name: 'レシピごと' }).click();
     await expect(page.locator(`section a[href="${href}"]`)).toBeVisible();
 
     expect(errors).toEqual([]);
@@ -439,6 +463,89 @@ test('レシピ詳細で人数を変えると材料の分量が換算される',
     await page.getByRole('dialog').getByRole('button', { name: '削除する' }).click();
     await expect(page.getByRole('dialog')).toBeHidden();
     await expect(page.getByRole('link', { name: title })).toBeHidden();
+
+    expect(errors).toEqual([]);
+});
+
+test('買い物リストで別レシピの同じ材料が1行にまとまり、チェック・削除が全行に効く', async ({ page }) => {
+    const errors = collectPageErrors(page);
+
+    await login(page);
+
+    // 1つ目のレシピと、その最初の材料名
+    await page.goto('/recipes');
+    const firstHref = (await recipeCards(page).first().getAttribute('href'))!;
+    await page.goto(firstHref);
+    const name = (await ingredientNames(page).first().textContent())!.trim();
+
+    // 同じ名前の材料を持つ別レシピを探す。検索は部分一致なので、詳細で完全一致を確かめる
+    await page.goto(`/recipes/by-ingredients?ingredients[0]=${encodeURIComponent(name)}`);
+    await expect(page.getByText(/\d+件/).first()).toBeVisible();
+    const candidates = (await recipeCards(page).evaluateAll((links) => links.map((link) => link.getAttribute('href') ?? ''))).filter(
+        (href) => href !== firstHref,
+    );
+    let secondHref: string | undefined;
+    for (const href of candidates) {
+        await page.goto(href);
+        if ((await ingredientNames(page).allTextContents()).some((text) => text.trim() === name)) {
+            secondHref = href;
+            break;
+        }
+    }
+    expect(secondHref, `「${name}」を使う別レシピ`).toBeDefined();
+    const recipeHrefs = [firstHref, secondHref!];
+
+    // 前回の残りを片付けてから、2つのレシピを買い物リストに入れる
+    for (const href of recipeHrefs) {
+        await removeRecipeFromCart(page, href);
+    }
+    for (const href of recipeHrefs) {
+        await page.goto(href);
+        await page.getByRole('button', { name: '買い物リストに追加', exact: true }).click();
+        await expect(page.getByRole('button', { name: '買い物リストに追加済み' })).toBeVisible();
+    }
+
+    // 材料ごと（初期表示）では1行にまとまり、分量が並ぶ。片付けで保存された切替状態を消して初期表示を見る
+    await page.evaluate(() => localStorage.removeItem('shopping-list-view'));
+    await page.goto('/shopping-list');
+    await expect(page.getByRole('tab', { name: '材料ごと' })).toHaveAttribute('aria-selected', 'true');
+    const mergedRow = page.locator('li').filter({ has: page.getByRole('button', { name: `${name}を削除`, exact: true }) });
+    await expect(mergedRow).toHaveCount(1);
+    await expect(mergedRow).toContainText(' + ');
+
+    // まとめた行のチェックが、レシピごと表示の両方のレシピの行に効く。
+    // 他のテストが入れたレシピにも同じ材料がありうるので、ページ全体ではなく追加した2レシピのセクションで確かめる
+    await mergedRow.locator('button[aria-pressed="false"]').click();
+    await expect(mergedRow.locator('button[aria-pressed="true"]')).toBeVisible();
+    await page.getByRole('tab', { name: 'レシピごと' }).click();
+    const rowsIn = (href: string) =>
+        page
+            .locator('section')
+            .filter({ has: page.locator(`a[href="${href}"]`) })
+            .locator('li')
+            .filter({ has: page.getByRole('button', { name: `${name}を削除`, exact: true }) });
+    for (const href of recipeHrefs) {
+        await expect(rowsIn(href).first()).toBeVisible();
+        await expect(rowsIn(href).locator('button[aria-pressed="false"]')).toHaveCount(0);
+    }
+
+    // 切替は再読み込みしても保たれる
+    await page.reload();
+    await expect(page.getByRole('tab', { name: 'レシピごと' })).toHaveAttribute('aria-selected', 'true');
+
+    // まとめた行の削除で、両方の行が消える
+    await page.getByRole('tab', { name: '材料ごと' }).click();
+    await mergedRow.getByRole('button', { name: `${name}を削除`, exact: true }).click();
+    await expect(mergedRow).toHaveCount(0);
+    await page.getByRole('tab', { name: 'レシピごと' }).click();
+    for (const href of recipeHrefs) {
+        await expect(rowsIn(href)).toHaveCount(0);
+    }
+
+    // 次の実行や他のテストに残さない
+    for (const href of recipeHrefs) {
+        await removeRecipeFromCart(page, href);
+    }
 
     expect(errors).toEqual([]);
 });

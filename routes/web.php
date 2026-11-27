@@ -40,8 +40,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('recipes/{recipe}/favorite', [FavoriteController::class, 'destroy'])->middleware('throttle:writes')->name('favorites.destroy');
 
     Route::get('shopping-list', [CartController::class, 'index'])->name('carts.index');
-    // checked が {cart} に解決されないよう、{cart} 系より先に登録する
+    // checked / bulk が {cart} に解決されないよう、{cart} 系より先に登録する
     Route::delete('shopping-list/checked', [CartController::class, 'destroyChecked'])->middleware('throttle:writes')->name('carts.destroyChecked');
+    Route::patch('shopping-list/bulk', [CartController::class, 'bulkUpdate'])->middleware('throttle:writes')->name('carts.bulkUpdate');
+    Route::delete('shopping-list/bulk', [CartController::class, 'bulkDestroy'])->middleware('throttle:writes')->name('carts.bulkDestroy');
     Route::patch('shopping-list/{cart}', [CartController::class, 'update'])->middleware('throttle:writes')->name('carts.update');
     Route::delete('shopping-list/{cart}', [CartController::class, 'destroy'])->middleware('throttle:writes')->name('carts.destroy');
     Route::post('recipes/{recipe}/cart', [CartController::class, 'store'])->middleware('throttle:writes')->name('carts.store');

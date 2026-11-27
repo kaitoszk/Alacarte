@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Cart\AddRecipeToCartAction;
+use App\Http\Requests\BulkCartRequest;
+use App\Http\Requests\BulkUpdateCartRequest;
 use App\Http\Requests\UpdateCartRequest;
 use App\Http\Resources\CartResource;
 use App\Models\Cart;
@@ -85,6 +87,28 @@ class CartController extends Controller
     public function destroyChecked(Request $request): RedirectResponse
     {
         $request->user()->carts()->where('is_checked', true)->delete();
+
+        return back();
+    }
+
+    /**
+     * まとめた複数行のチェックを一括で付け外しする。ids は FormRequest で自分の行に限定済み。
+     */
+    public function bulkUpdate(BulkUpdateCartRequest $request): RedirectResponse
+    {
+        $request->user()->carts()
+            ->whereIn('id', $request->validated('ids'))
+            ->update(['is_checked' => $request->boolean('is_checked')]);
+
+        return back();
+    }
+
+    /**
+     * まとめた複数行を一括で削除する。ids は FormRequest で自分の行に限定済み。
+     */
+    public function bulkDestroy(BulkCartRequest $request): RedirectResponse
+    {
+        $request->user()->carts()->whereIn('id', $request->validated('ids'))->delete();
 
         return back();
     }
