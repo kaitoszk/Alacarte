@@ -6,8 +6,8 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type SharedData } from '@/types';
 import type { Feed, Recipe } from '@/types/recipe';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { Shuffle } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { Dices, Shuffle } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 
 type Tab = 'all' | 'following';
 
@@ -33,6 +33,26 @@ const loadFeed = (tab: Tab) => {
     );
 };
 
+/** 今日のおまかせの条件。選ばなくてもボタン1つで提案できるよう、既定は「指定なし」 */
+type TimeLimit = 15 | 30 | 60 | null;
+
+const timeOptions: { value: TimeLimit; label: string }[] = [
+    { value: null, label: '指定なし' },
+    { value: 15, label: '15分以内' },
+    { value: 30, label: '30分以内' },
+    { value: 60, label: '60分以内' },
+];
+
+const omakaseTime = ref<TimeLimit>(null);
+const omakaseFromFavorites = ref(false);
+
+const pickRecipe = () => {
+    router.get(route('recipes.random'), {
+        ...(omakaseTime.value !== null ? { time: omakaseTime.value } : {}),
+        ...(isLoggedIn.value && omakaseFromFavorites.value ? { favorites: 1 } : {}),
+    });
+};
+
 const tabs: { key: Tab; label: string }[] = [
     { key: 'all', label: 'みんなのレシピ' },
     { key: 'following', label: 'フォロー中' },
@@ -48,10 +68,41 @@ const tabs: { key: Tab; label: string }[] = [
             <section class="rounded-2xl bg-primary/10 px-6 py-8 sm:px-10">
                 <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">今日、何つくる？</h1>
                 <p class="mt-2 text-sm text-muted-foreground sm:text-base">みんなのレシピを眺めて、今日の一品を決めましょう。</p>
-                <Button v-if="tab === 'all'" class="mt-5" @click="loadFeed('all')">
-                    <Shuffle class="h-4 w-4" />
-                    別のレシピを見る
-                </Button>
+
+                <!-- 今日のおまかせ：条件に合うレシピを1件選んで詳細へ遷移する -->
+                <div class="mt-5 flex flex-col gap-3 rounded-xl bg-background/70 p-4">
+                    <div class="flex flex-wrap gap-2" role="group" aria-label="調理時間の上限">
+                        <button
+                            v-for="option in timeOptions"
+                            :key="option.label"
+                            type="button"
+                            class="rounded-full border px-3.5 py-1.5 text-sm transition"
+                            :class="
+                                omakaseTime === option.value
+                                    ? 'border-primary bg-primary text-primary-foreground'
+                                    : 'bg-background hover:border-primary hover:text-primary-strong'
+                            "
+                            :aria-pressed="omakaseTime === option.value ? 'true' : 'false'"
+                            @click="omakaseTime = option.value"
+                        >
+                            {{ option.label }}
+                        </button>
+                    </div>
+                    <label v-if="isLoggedIn" class="inline-flex w-fit items-center gap-2 text-sm">
+                        <input v-model="omakaseFromFavorites" type="checkbox" class="h-4 w-4 accent-primary" />
+                        お気に入りから選ぶ
+                    </label>
+                    <div class="flex flex-wrap gap-2">
+                        <Button @click="pickRecipe">
+                            <Dices class="h-4 w-4" />
+                            今日のおまかせ
+                        </Button>
+                        <Button v-if="tab === 'all'" variant="secondary" @click="loadFeed('all')">
+                            <Shuffle class="h-4 w-4" />
+                            別のレシピを見る
+                        </Button>
+                    </div>
+                </div>
             </section>
 
             <div class="inline-flex w-fit rounded-full border bg-muted p-1" role="tablist">
