@@ -8,7 +8,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import type { Paginated, Recipe, RecipeFilters } from '@/types/recipe';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Plus, Search, SearchX, UtensilsCrossed, X } from 'lucide-vue-next';
+import { Plus, Refrigerator, Search, SearchX, UtensilsCrossed, X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{
@@ -93,21 +93,29 @@ const summary = computed(() => {
                 </Button>
             </div>
 
-            <form class="flex max-w-xl gap-2" role="search" @submit.prevent="search">
-                <div class="relative flex-1">
-                    <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                        v-model="keyword"
-                        type="search"
-                        maxlength="50"
-                        class="pl-9"
-                        placeholder="料理名や材料で探す（例: 鶏肉 玉ねぎ）"
-                        aria-label="レシピを検索"
-                    />
-                </div>
-                <Button type="submit">検索</Button>
-                <Button v-if="filters.q" type="button" variant="ghost" @click="clearKeyword"><X class="h-4 w-4" />クリア</Button>
-            </form>
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <form class="flex w-full max-w-xl gap-2" role="search" @submit.prevent="search">
+                    <div class="relative flex-1">
+                        <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            v-model="keyword"
+                            type="search"
+                            maxlength="50"
+                            class="pl-9"
+                            placeholder="料理名や材料で探す（例: 鶏肉 玉ねぎ）"
+                            aria-label="レシピを検索"
+                        />
+                    </div>
+                    <Button type="submit">検索</Button>
+                    <Button v-if="filters.q" type="button" variant="ghost" @click="clearKeyword"><X class="h-4 w-4" />クリア</Button>
+                </form>
+                <Link
+                    :href="route('recipes.by-ingredients')"
+                    class="flex items-center gap-1.5 text-sm font-medium text-primary-strong hover:underline"
+                >
+                    <Refrigerator class="h-4 w-4" />冷蔵庫の材料から探す
+                </Link>
+            </div>
 
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <div class="flex flex-wrap gap-2" role="group" aria-label="調理時間で絞り込む">

@@ -9,6 +9,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MealPlanCartController;
 use App\Http\Controllers\MealPlanController;
 use App\Http\Controllers\RandomRecipeController;
+use App\Http\Controllers\RecipeByIngredientsController;
 use App\Http\Controllers\RecipeCommentController;
 use App\Http\Controllers\RecipeController;
 use App\Http\Controllers\UserController;
@@ -17,6 +18,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('omakase', RandomRecipeController::class)->name('recipes.random');
+// recipes/{recipe} に飲まれないよう、レシピの resource より先に登録する
+Route::get('recipes/by-ingredients', RecipeByIngredientsController::class)->name('recipes.by-ingredients');
 
 // 認証系のリダイレクト先として route('dashboard') が各所から参照されているため、
 // 名前は残したまま自分のプロフィール（マイページ）へ送るだけにする。
