@@ -513,13 +513,21 @@ test('買い物リストで別レシピの同じ材料が1行にまとまり、�
     await expect(mergedRow).toHaveCount(1);
     await expect(mergedRow).toContainText(' + ');
 
-    // まとめた行のチェックが、レシピごと表示の両方の行に効く
+    // まとめた行のチェックが、レシピごと表示の両方のレシピの行に効く。
+    // 他のテストが入れたレシピにも同じ材料がありうるので、ページ全体ではなく追加した2レシピのセクションで確かめる
     await mergedRow.locator('button[aria-pressed="false"]').click();
     await expect(mergedRow.locator('button[aria-pressed="true"]')).toBeVisible();
     await page.getByRole('tab', { name: 'レシピごと' }).click();
-    const recipeRows = page.locator('section li').filter({ has: page.getByRole('button', { name: `${name}を削除`, exact: true }) });
-    await expect(recipeRows).toHaveCount(2);
-    await expect(recipeRows.locator('button[aria-pressed="true"]')).toHaveCount(2);
+    const rowsIn = (href: string) =>
+        page
+            .locator('section')
+            .filter({ has: page.locator(`a[href="${href}"]`) })
+            .locator('li')
+            .filter({ has: page.getByRole('button', { name: `${name}を削除`, exact: true }) });
+    for (const href of recipeHrefs) {
+        await expect(rowsIn(href).first()).toBeVisible();
+        await expect(rowsIn(href).locator('button[aria-pressed="false"]')).toHaveCount(0);
+    }
 
     // 切替は再読み込みしても保たれる
     await page.reload();
@@ -530,7 +538,9 @@ test('買い物リストで別レシピの同じ材料が1行にまとまり、�
     await mergedRow.getByRole('button', { name: `${name}を削除`, exact: true }).click();
     await expect(mergedRow).toHaveCount(0);
     await page.getByRole('tab', { name: 'レシピごと' }).click();
-    await expect(recipeRows).toHaveCount(0);
+    for (const href of recipeHrefs) {
+        await expect(rowsIn(href)).toHaveCount(0);
+    }
 
     // 次の実行や他のテストに残さない
     for (const href of recipeHrefs) {
