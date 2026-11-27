@@ -124,6 +124,30 @@ class Recipe extends Model
     }
 
     /**
+     * 指定した材料名のどれかを部分一致で含むレシピに絞り、一致した材料の数を matched_ingredients_count として付与する。
+     * 数えるのは一致した材料の「行数」。「豚」で「豚肉」「豚ひき肉」が当たれば 2 になる
+     * （入力語単位で数えるには生 SQL が要るため、行数で近似している）。
+     *
+     * @param  Builder<Recipe>  $query
+     * @param  list<string>  $names
+     * @return Builder<Recipe>
+     */
+    public function scopeMatchingIngredients(Builder $query, array $names): Builder
+    {
+        $patterns = array_map(fn (string $name) => '%'.addcslashes($name, '\\%_').'%', $names);
+
+        $matches = fn (Builder $ingredient) => $ingredient->where(function (Builder $ingredient) use ($patterns) {
+            foreach ($patterns as $pattern) {
+                $ingredient->orWhere('name', 'like', $pattern);
+            }
+        });
+
+        return $query
+            ->whereHas('ingredients', $matches)
+            ->withCount(['ingredients as matched_ingredients_count' => $matches]);
+    }
+
+    /**
      * 指定した分数以内で作れるレシピに絞る。null なら絞り込まない。
      *
      * @param  Builder<Recipe>  $query

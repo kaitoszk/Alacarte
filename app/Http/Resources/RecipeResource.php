@@ -31,6 +31,8 @@ class RecipeResource extends JsonResource
             'comments_count' => $this->whenCounted('comments'),
             // withFavoritedBy スコープを通したときだけ含まれる
             'is_favorited' => $this->whenHas('is_favorited', fn ($value) => (bool) $value),
+            // matchingIngredients スコープを通したときだけ含まれる
+            'matched_ingredients_count' => $this->whenHas('matched_ingredients_count', fn ($value) => (int) $value),
             'is_published' => $this->isPublished(),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
