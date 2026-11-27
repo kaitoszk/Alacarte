@@ -22,7 +22,7 @@ export interface SharedData {
     quote: { message: string; author: string };
     auth: Auth;
     /** リダイレクト時に1回だけ表示するメッセージ */
-    flash: { success: string | null };
+    flash: { success: string | null; info: string | null };
     ziggy: {
         location: string;
         url: string;
