@@ -50,6 +50,8 @@ export interface Recipe {
     comments_count?: number;
     /** withFavoritedBy スコープを通したときだけ含まれる */
     is_favorited?: boolean;
+    /** 冷蔵庫の材料から探したときだけ含まれる。一致した材料の行数 */
+    matched_ingredients_count?: number;
     /** false なら下書き */
     is_published: boolean;
     created_at: string;
